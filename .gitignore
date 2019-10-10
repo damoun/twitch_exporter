@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+twitch_exporter
 
 # Test binary, build with `go test -c`
 *.test

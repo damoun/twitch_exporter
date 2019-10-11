@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/nicklaw5/helix"
@@ -32,8 +33,8 @@ const (
 )
 
 var (
-	channelLive = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "", "channel_live"),
+	channelUp = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "channel_up"),
 		"Is the channel live.",
 		[]string{"username", "game"}, nil,
 	)
@@ -72,7 +73,7 @@ func NewExporter() (*Exporter, error) {
 // Describe describes all the metrics ever exported by the Twitch exporter. It
 // implements prometheus.Collector.
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
-	ch <- channelLive
+	ch <- channelUp
 	ch <- channelViewers
 }
 

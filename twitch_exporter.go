@@ -69,6 +69,11 @@ var (
 		"How many viewers on this live channel.",
 		[]string{"username", "game"}, nil,
 	)
+	channelViews = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "channel_views_total"),
+		"The number of view of a channel.",
+		[]string{"username"}, nil,
+	)
 )
 
 // Exporter collects Twitch metrics from the helix API and exports them using
@@ -102,7 +107,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 // as Prometheus metrics. It implements prometheus.Collector.
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	channelsLive := make(map[string]bool)
-	resp, err := e.client.GetStreams(&helix.StreamsParams{
+	streamsResp, err := e.client.GetStreams(&helix.StreamsParams{
 		UserLogins: *twitchChannel,
 		First:      len(*twitchChannel),
 	})
@@ -111,8 +116,8 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
-	for _, stream := range resp.Data.Streams {
-		resp, err := e.client.GetGames(&helix.GamesParams{
+	for _, stream := range streamsResp.Data.Streams {
+		gamesResp, err := e.client.GetGames(&helix.GamesParams{
 			IDs: []string{stream.GameID},
 		})
 		var gameName string
@@ -120,7 +125,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			log.Errorf("Failed to get Game name: %v", err)
 			gameName = ""
 		} else {
-			gameName = resp.Data.Games[0].Name
+			gameName = gamesResp.Data.Games[0].Name
 		}
 		channelsLive[stream.UserName] = true
 		ch <- prometheus.MustNewConstMetric(
@@ -139,7 +144,23 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 				channelUp, prometheus.GaugeValue, 0,
 				channelName, "",
 			)
+			channelsLive[channelName] = false
 		}
+	}
+
+	usersResp, err := e.client.GetUsers(&helix.UsersParams{
+		Logins: *twitchChannel,
+	})
+	if err != nil {
+		log.Errorf("Failed to collect stats from Twitch helix API: %v", err)
+		return
+	}
+	for _, user := range usersResp.Data.Users {
+		}
+		ch <- prometheus.MustNewConstMetric(
+			channelViews, prometheus.GaugeValue,
+			float64(user.ViewCount), user.Login,
+		)
 	}
 }
 

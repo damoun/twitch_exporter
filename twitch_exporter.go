@@ -24,13 +24,39 @@ var (
 		Default("/metrics").String()
 	twitchClientID = kingpin.Flag("twitch.client-id",
 		"Client ID for the Twitch Helix API.").Required().String()
-	twitchChannel = kingpin.Flag("twitch.channel",
-		"Name of a Twitch Channel to request metrics.").String()
+	twitchChannel = Channels(kingpin.Flag("twitch.channel",
+		"Name of a Twitch Channel to request metrics."))
 )
 
 const (
 	namespace = "twitch"
 )
+
+// ChannelNames represents a list of twitch channels.
+type ChannelNames []string
+
+// IsCumulative is required for kingpin interfaces to allow multiple values
+func (c ChannelNames) IsCumulative() bool {
+	return true
+}
+
+// Set sets the value of a ChannelNames
+func (c *ChannelNames) Set(v string) error {
+	*c = append(*c, v)
+	return nil
+}
+
+// String returns a string representation of the Channels type.
+func (c ChannelNames) String() string {
+	return fmt.Sprintf("%v", []string(c))
+}
+
+// Channels creates a collection of Channels from a kingpin command line argument.
+func Channels(s kingpin.Settings) (target *ChannelNames) {
+	target = &ChannelNames{}
+	s.SetValue(target)
+	return target
+}
 
 var (
 	channelUp = prometheus.NewDesc(
@@ -44,11 +70,6 @@ var (
 		[]string{"username", "game"}, nil,
 	)
 )
-
-func remove(s []string, i int) []string {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
-}
 
 // Exporter collects Twitch metrics from the helix API and exports them using
 // the Prometheus metrics package.
@@ -80,10 +101,10 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 // Collect fetches the stats from configured Twitch Channels and delivers them
 // as Prometheus metrics. It implements prometheus.Collector.
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
-	channelsName := []string{*twitchChannel}
+	channelsLive := make(map[string]bool)
 	resp, err := e.client.GetStreams(&helix.StreamsParams{
-		UserLogins: channelsName,
-		First:      1,
+		UserLogins: *twitchChannel,
+		First:      len(*twitchChannel),
 	})
 	if err != nil {
 		log.Errorf("Failed to collect stats from Twitch helix API: %v", err)
@@ -101,35 +122,24 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		} else {
 			gameName = resp.Data.Games[0].Name
 		}
-		if stream.Type == "live" {
-			ch <- prometheus.MustNewConstMetric(
-				channelLive, prometheus.GaugeValue, 1,
-				stream.UserName, gameName,
-			)
-		} else {
-			ch <- prometheus.MustNewConstMetric(
-				channelLive, prometheus.GaugeValue, 0,
-				stream.UserName, gameName,
-			)
-		}
+		channelsLive[stream.UserName] = true
+		ch <- prometheus.MustNewConstMetric(
+			channelUp, prometheus.GaugeValue, 1,
+			stream.UserName, gameName,
+		)
 		ch <- prometheus.MustNewConstMetric(
 			channelViewers, prometheus.GaugeValue,
 			float64(stream.ViewerCount), stream.UserName, gameName,
 		)
-
-		for i, channelName := range channelsName {
-			if channelName == stream.UserName {
-				remove(channelsName, i)
-				break
-			}
-		}
 	}
 
-	for _, channelName := range channelsName {
-		ch <- prometheus.MustNewConstMetric(
-			channelLive, prometheus.GaugeValue, 0,
-			channelName, "",
-		)
+	for _, channelName := range *twitchChannel {
+		if _, ok := channelsLive[channelName]; !ok {
+			ch <- prometheus.MustNewConstMetric(
+				channelUp, prometheus.GaugeValue, 0,
+				channelName, "",
+			)
+		}
 	}
 }
 

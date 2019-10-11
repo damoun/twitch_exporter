@@ -69,6 +69,11 @@ var (
 		"How many viewers on this live channel.",
 		[]string{"username", "game"}, nil,
 	)
+	channelFollowers = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "channel_followers_total"),
+		"The number of followers of a channel.",
+		[]string{"username"}, nil,
+	)
 	channelViews = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "channel_views_total"),
 		"The number of view of a channel.",
@@ -156,7 +161,17 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 	for _, user := range usersResp.Data.Users {
+		usersFollowsResp, err := e.client.GetUsersFollows(&helix.UsersFollowsParams{
+			ToID: user.ID,
+		})
+		if err != nil {
+			log.Errorf("Failed to collect stats from Twitch helix API: %v", err)
+			return
 		}
+		ch <- prometheus.MustNewConstMetric(
+			channelFollowers, prometheus.GaugeValue,
+			float64(usersFollowsResp.Data.Total), user.Login,
+		)
 		ch <- prometheus.MustNewConstMetric(
 			channelViews, prometheus.GaugeValue,
 			float64(user.ViewCount), user.Login,

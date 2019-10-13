@@ -79,6 +79,11 @@ var (
 		"The number of view of a channel.",
 		[]string{"username"}, nil,
 	)
+	channelSubscribers = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "channel_subscribers_total"),
+		"The number of subscriber of a channel.",
+		[]string{"username", "tier", "gifted"}, nil,
+	)
 )
 
 // Exporter collects Twitch metrics from the helix API and exports them using
@@ -178,6 +183,40 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			channelViews, prometheus.GaugeValue,
 			float64(user.ViewCount), user.Login,
 		)
+		subscribtionsResp, err := e.client.GetSubscribtions(&helix.SubscribtionsParams{
+			BroadcasterID: user.ID
+		})
+		if err != nil {
+			log.Errorf("Failed to collect stats from Twitch helix API: %v", err)
+			return
+		}
+		subCounter := make(map([string]int))
+		giftedSubCounter := make(map([string]int))
+		for _, subscription := range subscribtionsResp.Data.Subscriptions {
+			if subscription.IsGift {
+				if !giftedSubCounter[subscription.Tier] {
+					giftedSubCounter[subscription.Tier] = 0
+				}
+				giftedSubCounter[subscription.Tier] = giftedSubCounter[subscription.Tier] + 1
+			} else {
+				if !subCounter[subscription.Tier] {
+					subCounter[subscription.Tier] = 0
+				}
+				subCounter[subscription.Tier] = subCounter[subscription.Tier] + 1
+			}
+		}
+		for tier, counter := range giftedSubCounter {
+			ch <- prometheus.MustNewConstMetric(
+				channelSubscribers, prometheus.GaugeValue,
+				float64(counter), user.Login, tier, "true"
+			)
+		}
+		for tier, counter := range subCounter {
+			ch <- prometheus.MustNewConstMetric(
+				channelSubscribers, prometheus.GaugeValue,
+				float64(counter), user.Login, tier, "false"
+			)
+		}
 	}
 }
 

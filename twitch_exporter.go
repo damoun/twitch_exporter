@@ -187,7 +187,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			channelViews, prometheus.GaugeValue,
 			float64(user.ViewCount), user.Login,
 		)
-		subscribtionsResp, err := e.client.GetSubscribtions(&helix.SubscribtionsParams{
+		subscribtionsResp, err := e.client.GetSubscriptions(&helix.SubscriptionsParams{
 			BroadcasterID: user.ID,
 		})
 		if err != nil {
@@ -198,12 +198,12 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		giftedSubCounter := make(map[string]int)
 		for _, subscription := range subscribtionsResp.Data.Subscriptions {
 			if subscription.IsGift {
-				if !giftedSubCounter[subscription.Tier] {
+				if _, ok := giftedSubCounter[subscription.Tier]; !ok {
 					giftedSubCounter[subscription.Tier] = 0
 				}
 				giftedSubCounter[subscription.Tier] = giftedSubCounter[subscription.Tier] + 1
 			} else {
-				if !subCounter[subscription.Tier] {
+				if _, ok := subCounter[subscription.Tier]; !ok {
 					subCounter[subscription.Tier] = 0
 				}
 				subCounter[subscription.Tier] = subCounter[subscription.Tier] + 1

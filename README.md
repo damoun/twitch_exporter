@@ -21,6 +21,7 @@ make
 | twitch_channel_viewers_total | Is the total number of viewers on an online twitch channel. | username, game |
 | twitch_channel_views_total | Is the total number of views on a twitch channel. | username |
 | twitch_channel_followers_total | Is the total number of follower on a twitch channel. | username |
+| twitch_channel_subscribers_total | Is the total number of subscriber on a twitch channel. | username, tier, gifted |
 
 ### Flags
 
@@ -30,6 +31,7 @@ make
 
 * __`twitch.channel`:__ The name of a twitch channel.
 * __`twitch.client-id`:__ The client ID to request the New Twitch API (helix).
+* __`twitch.access-token`:__ The access token to request the New Twitch API (helix).
 * __`log.format`:__ Set the log target and format. Example: `logger:syslog?appname=bob&local=7`
     or `logger:stdout?json=true`
 * __`log.level`:__ Logging level. `info` by default.
@@ -53,8 +55,8 @@ docker pull damoun/twitch-exporter
 docker run -d -p 9184:9184 \
         damoun/twitch-exporter \
         --twitch.client-id <secret> \
-        --twitch.channel dam0un \
-        --twitch.channel mistermv
+        --twitch.access-token <secret> \
+        --twitch.channel dam0un
 ```
 
 [circleci]: https://circleci.com/gh/damoun/twitch_exporter

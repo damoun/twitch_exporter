@@ -11,7 +11,7 @@ github.com/golang/protobuf/proto
 github.com/konsorten/go-windows-terminal-sequences
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/nicklaw5/helix v0.5.2
+# github.com/nicklaw5/helix v0.5.3
 github.com/nicklaw5/helix
 # github.com/prometheus/client_golang v1.1.0
 github.com/prometheus/client_golang/prometheus

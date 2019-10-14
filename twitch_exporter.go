@@ -106,6 +106,8 @@ func NewExporter() (*Exporter, error) {
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- channelUp
 	ch <- channelViewers
+	ch <- channelFollowers
+	ch <- channelViews
 }
 
 // Collect fetches the stats from configured Twitch Channels and delivers them

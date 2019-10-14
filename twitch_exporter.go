@@ -26,6 +26,8 @@ var (
 		"Client ID for the Twitch Helix API.").Required().String()
 	twitchChannel = Channels(kingpin.Flag("twitch.channel",
 		"Name of a Twitch Channel to request metrics."))
+	twitchAccessToken = kingpin.Flag("twitch.access-token",
+		"Access Token for the Twitch Helix API.").String()
 )
 
 const (
@@ -95,7 +97,8 @@ type Exporter struct {
 // NewExporter returns an initialized Exporter.
 func NewExporter() (*Exporter, error) {
 	client, err := helix.NewClient(&helix.Options{
-		ClientID: *twitchClientID,
+		ClientID:        *twitchClientID,
+		UserAccessToken: *twitchAccessToken,
 	})
 	if err != nil {
 		return nil, err

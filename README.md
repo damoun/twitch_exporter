@@ -30,7 +30,6 @@ make
 
 * __`twitch.channel`:__ The name of a twitch channel.
 * __`twitch.client-id`:__ The client ID to request the New Twitch API (helix).
-* __`twitch-tls-client-key`:__ The path to the private key for twitch communication.
 * __`log.format`:__ Set the log target and format. Example: `logger:syslog?appname=bob&local=7`
     or `logger:stdout?json=true`
 * __`log.level`:__ Logging level. `info` by default.

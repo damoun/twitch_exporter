@@ -27,7 +27,7 @@ var (
 	twitchChannel = Channels(kingpin.Flag("twitch.channel",
 		"Name of a Twitch Channel to request metrics."))
 	twitchAccessToken = kingpin.Flag("twitch.access-token",
-		"Access Token for the Twitch Helix API.").String()
+		"Access Token for the Twitch Helix API.").Required().String()
 )
 
 const (

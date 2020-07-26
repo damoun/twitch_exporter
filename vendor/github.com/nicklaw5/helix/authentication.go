@@ -1,12 +1,14 @@
 package helix
 
 import (
+	"net/http"
 	"strings"
 )
 
 var authPaths = map[string]string{
-	"token":  "/token",
-	"revoke": "/revoke",
+	"token":    "/token",
+	"revoke":   "/revoke",
+	"validate": "/validate",
 }
 
 // GetAuthorizationURL ...
@@ -67,10 +69,7 @@ func (c *Client) GetAppAccessToken() (*AppAccessTokenResponse, error) {
 	}
 
 	token := &AppAccessTokenResponse{}
-	token.StatusCode = resp.StatusCode
-	token.Error = resp.Error
-	token.ErrorStatus = resp.ErrorStatus
-	token.ErrorMessage = resp.ErrorMessage
+	resp.HydrateResponseCommon(&token.ResponseCommon)
 	token.Data.AccessToken = resp.Data.(*AppAccessCredentials).AccessToken
 	token.Data.ExpiresIn = resp.Data.(*AppAccessCredentials).ExpiresIn
 
@@ -116,10 +115,7 @@ func (c *Client) GetUserAccessToken(code string) (*UserAccessTokenResponse, erro
 	}
 
 	token := &UserAccessTokenResponse{}
-	token.StatusCode = resp.StatusCode
-	token.Error = resp.Error
-	token.ErrorStatus = resp.ErrorStatus
-	token.ErrorMessage = resp.ErrorMessage
+	resp.HydrateResponseCommon(&token.ResponseCommon)
 	token.Data.AccessToken = resp.Data.(*UserAccessCredentials).AccessToken
 	token.Data.RefreshToken = resp.Data.(*UserAccessCredentials).RefreshToken
 	token.Data.ExpiresIn = resp.Data.(*UserAccessCredentials).ExpiresIn
@@ -160,10 +156,7 @@ func (c *Client) RefreshUserAccessToken(refreshToken string) (*RefreshTokenRespo
 	}
 
 	refresh := &RefreshTokenResponse{}
-	refresh.StatusCode = resp.StatusCode
-	refresh.Error = resp.Error
-	refresh.ErrorStatus = resp.ErrorStatus
-	refresh.ErrorMessage = resp.ErrorMessage
+	resp.HydrateResponseCommon(&refresh.ResponseCommon)
 	refresh.Data.AccessToken = resp.Data.(*UserAccessCredentials).AccessToken
 	refresh.Data.RefreshToken = resp.Data.(*UserAccessCredentials).RefreshToken
 	refresh.Data.ExpiresIn = resp.Data.(*UserAccessCredentials).ExpiresIn
@@ -199,10 +192,45 @@ func (c *Client) RevokeUserAccessToken(accessToken string) (*RevokeAccessTokenRe
 	}
 
 	revoke := &RevokeAccessTokenResponse{}
-	revoke.StatusCode = resp.StatusCode
-	revoke.Error = resp.Error
-	revoke.ErrorStatus = resp.ErrorStatus
-	revoke.ErrorMessage = resp.ErrorMessage
+	resp.HydrateResponseCommon(&revoke.ResponseCommon)
 
 	return revoke, nil
+}
+
+type ValidateTokenResponse struct {
+	ResponseCommon
+	Data TokenDetails
+}
+
+type TokenDetails struct {
+	ClientID string   `json:"client_id"`
+	Login    string   `json:"login"`
+	Scopes   []string `json:"scopes"`
+	UserID   string   `json:"user_id"`
+}
+
+// ValidateToken - Validate access token
+func (c *Client) ValidateToken(accessToken string) (bool, *ValidateTokenResponse, error) {
+	// Reset to original token after request
+	currentToken := c.opts.UserAccessToken
+	c.SetUserAccessToken(accessToken)
+	defer c.SetUserAccessToken(currentToken)
+
+	var data TokenDetails
+	resp, err := c.get(authPaths["validate"], &data, nil)
+	if err != nil {
+		return false, nil, err
+	}
+
+	var isValid bool
+	if resp.StatusCode == http.StatusOK {
+		isValid = true
+	}
+
+	tokenResp := &ValidateTokenResponse{
+		Data: data,
+	}
+	resp.HydrateResponseCommon(&tokenResp.ResponseCommon)
+
+	return isValid, tokenResp, nil
 }

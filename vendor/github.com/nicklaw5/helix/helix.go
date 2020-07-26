@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	// APIBaseURL is the base URL for composing API requests.
-	APIBaseURL = "https://api.twitch.tv/helix"
+	// DefaultAPIBaseURL is the base URL for composing API requests.
+	DefaultAPIBaseURL = "https://api.twitch.tv/helix"
 
 	// AuthBaseURL is the base URL for composing authentication requests.
 	AuthBaseURL = "https://id.twitch.tv/oauth2"
@@ -31,7 +31,6 @@ type HTTPClient interface {
 type Client struct {
 	mu           sync.RWMutex
 	opts         *Options
-	baseURL      string
 	lastResponse *Response
 }
 
@@ -46,6 +45,7 @@ type Options struct {
 	Scopes          []string
 	HTTPClient      HTTPClient
 	RateLimitFunc   RateLimitFunc
+	APIBaseURL      string
 }
 
 // DateRange is a generic struct used by various responses.
@@ -93,6 +93,15 @@ type Response struct {
 	Data interface{}
 }
 
+// HydrateResponseCommon copies the content of the source response's ResponseCommon to the supplied ResponseCommon argument
+func (r *Response) HydrateResponseCommon(rc *ResponseCommon) {
+	rc.StatusCode = r.ResponseCommon.StatusCode
+	rc.Header = r.ResponseCommon.Header
+	rc.Error = r.ResponseCommon.Error
+	rc.ErrorStatus = r.ResponseCommon.ErrorStatus
+	rc.ErrorMessage = r.ResponseCommon.ErrorMessage
+}
+
 // Pagination ...
 type Pagination struct {
 	Cursor string `json:"cursor"`
@@ -109,33 +118,44 @@ func NewClient(options *Options) (*Client, error) {
 		options.HTTPClient = http.DefaultClient
 	}
 
+	if options.APIBaseURL == "" {
+		options.APIBaseURL = DefaultAPIBaseURL
+	}
+
 	client := &Client{
-		opts:    options,
-		baseURL: APIBaseURL,
+		opts: options,
 	}
 
 	return client, nil
 }
 
 func (c *Client) get(path string, respData, reqData interface{}) (*Response, error) {
-	return c.sendRequest(http.MethodGet, path, respData, reqData)
+	return c.sendRequest(http.MethodGet, path, respData, reqData, false)
 }
 
 func (c *Client) post(path string, respData, reqData interface{}) (*Response, error) {
-	return c.sendRequest(http.MethodPost, path, respData, reqData)
+	return c.sendRequest(http.MethodPost, path, respData, reqData, false)
 }
 
 func (c *Client) put(path string, respData, reqData interface{}) (*Response, error) {
-	return c.sendRequest(http.MethodPut, path, respData, reqData)
+	return c.sendRequest(http.MethodPut, path, respData, reqData, false)
 }
 
-func (c *Client) sendRequest(method, path string, respData, reqData interface{}) (*Response, error) {
+func (c *Client) postAsJSON(path string, respData, reqData interface{}) (*Response, error) {
+	return c.sendRequest(http.MethodPost, path, respData, reqData, true)
+}
+
+func (c *Client) putAsJSON(path string, respData, reqData interface{}) (*Response, error) {
+	return c.sendRequest(http.MethodPut, path, respData, reqData, true)
+}
+
+func (c *Client) sendRequest(method, path string, respData, reqData interface{}, hasJSONBody bool) (*Response, error) {
 	resp := &Response{}
 	if respData != nil {
 		resp.Data = respData
 	}
 
-	req, err := c.newRequest(method, path, reqData)
+	req, err := c.newRequest(method, path, reqData, hasJSONBody)
 	if err != nil {
 		return nil, err
 	}
@@ -229,13 +249,10 @@ func isZero(v interface{}) (bool, error) {
 	return v == reflect.Zero(t).Interface(), nil
 }
 
-func (c *Client) newRequest(method, path string, data interface{}) (*http.Request, error) {
+func (c *Client) newRequest(method, path string, data interface{}, hasJSONBody bool) (*http.Request, error) {
 	url := c.getBaseURL(path) + path
 
-	// We want to send Webhook POST request data in JSON form.
-	// So here we determine if data is of type `WebhookSubscriptionPayload`.
-	_, ok := data.(*WebhookSubscriptionPayload)
-	if ok {
+	if hasJSONBody {
 		return c.newJSONRequest(method, url, data)
 	}
 
@@ -287,7 +304,7 @@ func (c *Client) getBaseURL(path string) string {
 		}
 	}
 
-	return APIBaseURL
+	return c.opts.APIBaseURL
 }
 
 func (c *Client) doRequest(req *http.Request, resp *Response) error {
@@ -371,8 +388,14 @@ func (c *Client) setRequestHeaders(req *http.Request) {
 		bearerToken = opts.UserAccessToken
 	}
 
+	authType := "Bearer"
+	// Token validation requires different type of Auth
+	if req.URL.String() == AuthBaseURL+authPaths["validate"] {
+		authType = "OAuth"
+	}
+
 	if bearerToken != "" {
-		req.Header.Set("Authorization", "Bearer "+bearerToken)
+		req.Header.Set("Authorization", fmt.Sprintf("%s %s", authType, bearerToken))
 	}
 }
 

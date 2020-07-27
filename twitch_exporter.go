@@ -26,6 +26,8 @@ var (
 		"Client ID for the Twitch Helix API.").Required().String()
 	twitchChannel = Channels(kingpin.Flag("twitch.channel",
 		"Name of a Twitch Channel to request metrics."))
+	twitchAccessToken = kingpin.Flag("twitch.access-token",
+		"Access Token for the Twitch Helix API.").Required().String()
 )
 
 const (
@@ -79,6 +81,11 @@ var (
 		"The number of view of a channel.",
 		[]string{"username"}, nil,
 	)
+	channelSubscribers = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "channel_subscribers_total"),
+		"The number of subscriber of a channel.",
+		[]string{"username", "tier", "gifted"}, nil,
+	)
 )
 
 // Exporter collects Twitch metrics from the helix API and exports them using
@@ -90,7 +97,8 @@ type Exporter struct {
 // NewExporter returns an initialized Exporter.
 func NewExporter() (*Exporter, error) {
 	client, err := helix.NewClient(&helix.Options{
-		ClientID: *twitchClientID,
+		ClientID:        *twitchClientID,
+		UserAccessToken: *twitchAccessToken,
 	})
 	if err != nil {
 		return nil, err
@@ -108,6 +116,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- channelViewers
 	ch <- channelFollowers
 	ch <- channelViews
+	ch <- channelSubscribers
 }
 
 // Collect fetches the stats from configured Twitch Channels and delivers them
@@ -178,6 +187,40 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			channelViews, prometheus.GaugeValue,
 			float64(user.ViewCount), user.Login,
 		)
+		subscribtionsResp, err := e.client.GetSubscriptions(&helix.SubscriptionsParams{
+			BroadcasterID: user.ID,
+		})
+		if err != nil {
+			log.Errorf("Failed to collect stats from Twitch helix API: %v", err)
+			return
+		}
+		subCounter := make(map[string]int)
+		giftedSubCounter := make(map[string]int)
+		for _, subscription := range subscribtionsResp.Data.Subscriptions {
+			if subscription.IsGift {
+				if _, ok := giftedSubCounter[subscription.Tier]; !ok {
+					giftedSubCounter[subscription.Tier] = 0
+				}
+				giftedSubCounter[subscription.Tier] = giftedSubCounter[subscription.Tier] + 1
+			} else {
+				if _, ok := subCounter[subscription.Tier]; !ok {
+					subCounter[subscription.Tier] = 0
+				}
+				subCounter[subscription.Tier] = subCounter[subscription.Tier] + 1
+			}
+		}
+		for tier, counter := range giftedSubCounter {
+			ch <- prometheus.MustNewConstMetric(
+				channelSubscribers, prometheus.GaugeValue,
+				float64(counter), user.Login, tier, "true",
+			)
+		}
+		for tier, counter := range subCounter {
+			ch <- prometheus.MustNewConstMetric(
+				channelSubscribers, prometheus.GaugeValue,
+				float64(counter), user.Login, tier, "false",
+			)
+		}
 	}
 }
 

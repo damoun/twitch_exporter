@@ -1,4 +1,4 @@
-// Copyright 2019 Damien PLÉNARD.
+// Copyright 2020 Damien PLÉNARD.
 // Licensed under the MIT License
 
 package main

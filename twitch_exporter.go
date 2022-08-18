@@ -170,16 +170,6 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		)
 	}
 
-	for _, channelName := range *twitchChannel {
-		if _, ok := channelsLive[channelName]; !ok {
-			ch <- prometheus.MustNewConstMetric(
-				channelUp, prometheus.GaugeValue, 0,
-				channelName, "",
-			)
-			channelsLive[channelName] = false
-		}
-	}
-
 	usersResp, err := e.client.GetUsers(&helix.UsersParams{
 		Logins: *twitchChannel,
 	})
@@ -195,13 +185,19 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", err)
 			return
 		}
+		if _, ok := channelsLive[user.DisplayName]; !ok {
+			ch <- prometheus.MustNewConstMetric(
+				channelUp, prometheus.GaugeValue, 0,
+				user.DisplayName, "",
+			)
+		}
 		ch <- prometheus.MustNewConstMetric(
 			channelFollowers, prometheus.GaugeValue,
-			float64(usersFollowsResp.Data.Total), user.Login,
+			float64(usersFollowsResp.Data.Total), user.DisplayName,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			channelViews, prometheus.GaugeValue,
-			float64(user.ViewCount), user.Login,
+			float64(user.ViewCount), user.DisplayName,
 		)
 		subscribtionsResp, err := e.client.GetSubscriptions(&helix.SubscriptionsParams{
 			BroadcasterID: user.ID,
@@ -228,13 +224,13 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		for tier, counter := range giftedSubCounter {
 			ch <- prometheus.MustNewConstMetric(
 				channelSubscribers, prometheus.GaugeValue,
-				float64(counter), user.Login, tier, "true",
+				float64(counter), user.DisplayName, tier, "true",
 			)
 		}
 		for tier, counter := range subCounter {
 			ch <- prometheus.MustNewConstMetric(
 				channelSubscribers, prometheus.GaugeValue,
-				float64(counter), user.Login, tier, "false",
+				float64(counter), user.DisplayName, tier, "false",
 			)
 		}
 	}

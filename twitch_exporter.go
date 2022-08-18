@@ -6,12 +6,18 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/nicklaw5/helix"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/log"
+	"github.com/prometheus/common/promlog"
+	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
+	"github.com/prometheus/exporter-toolkit/web"
+	webflag "github.com/prometheus/exporter-toolkit/web/kingpinflag"
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -88,14 +94,23 @@ var (
 	)
 )
 
+type promHTTPLogger struct {
+	logger log.Logger
+}
+
+func (l promHTTPLogger) Println(v ...interface{}) {
+	level.Error(l.logger).Log("msg", fmt.Sprint(v...))
+}
+
 // Exporter collects Twitch metrics from the helix API and exports them using
 // the Prometheus metrics package.
 type Exporter struct {
 	client *helix.Client
+	logger log.Logger
 }
 
 // NewExporter returns an initialized Exporter.
-func NewExporter() (*Exporter, error) {
+func NewExporter(logger log.Logger) (*Exporter, error) {
 	client, err := helix.NewClient(&helix.Options{
 		ClientID:        *twitchClientID,
 		UserAccessToken: *twitchAccessToken,
@@ -106,6 +121,7 @@ func NewExporter() (*Exporter, error) {
 
 	return &Exporter{
 		client: client,
+		logger: logger,
 	}, nil
 }
 
@@ -128,7 +144,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		First:      len(*twitchChannel),
 	})
 	if err != nil {
-		log.Errorf("Failed to collect stats from Twitch helix API: %v", err)
+		level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", err)
 		return
 	}
 
@@ -138,7 +154,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		})
 		var gameName string
 		if err != nil {
-			log.Errorf("Failed to get Game name: %v", err)
+			level.Error(e.logger).Log("msg", "Failed to get Game name", "err", err)
 			gameName = ""
 		} else {
 			gameName = gamesResp.Data.Games[0].Name
@@ -154,21 +170,11 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		)
 	}
 
-	for _, channelName := range *twitchChannel {
-		if _, ok := channelsLive[channelName]; !ok {
-			ch <- prometheus.MustNewConstMetric(
-				channelUp, prometheus.GaugeValue, 0,
-				channelName, "",
-			)
-			channelsLive[channelName] = false
-		}
-	}
-
 	usersResp, err := e.client.GetUsers(&helix.UsersParams{
 		Logins: *twitchChannel,
 	})
 	if err != nil {
-		log.Errorf("Failed to collect stats from Twitch helix API: %v", err)
+		level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", err)
 		return
 	}
 	for _, user := range usersResp.Data.Users {
@@ -176,22 +182,28 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			ToID: user.ID,
 		})
 		if err != nil {
-			log.Errorf("Failed to collect stats from Twitch helix API: %v", err)
+			level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", err)
 			return
+		}
+		if _, ok := channelsLive[user.DisplayName]; !ok {
+			ch <- prometheus.MustNewConstMetric(
+				channelUp, prometheus.GaugeValue, 0,
+				user.DisplayName, "",
+			)
 		}
 		ch <- prometheus.MustNewConstMetric(
 			channelFollowers, prometheus.GaugeValue,
-			float64(usersFollowsResp.Data.Total), user.Login,
+			float64(usersFollowsResp.Data.Total), user.DisplayName,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			channelViews, prometheus.GaugeValue,
-			float64(user.ViewCount), user.Login,
+			float64(user.ViewCount), user.DisplayName,
 		)
 		subscribtionsResp, err := e.client.GetSubscriptions(&helix.SubscriptionsParams{
 			BroadcasterID: user.ID,
 		})
 		if err != nil {
-			log.Errorf("Failed to collect stats from Twitch helix API: %v", err)
+			level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", err)
 			return
 		}
 		subCounter := make(map[string]int)
@@ -212,13 +224,13 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		for tier, counter := range giftedSubCounter {
 			ch <- prometheus.MustNewConstMetric(
 				channelSubscribers, prometheus.GaugeValue,
-				float64(counter), user.Login, tier, "true",
+				float64(counter), user.DisplayName, tier, "true",
 			)
 		}
 		for tier, counter := range subCounter {
 			ch <- prometheus.MustNewConstMetric(
 				channelSubscribers, prometheus.GaugeValue,
-				float64(counter), user.Login, tier, "false",
+				float64(counter), user.DisplayName, tier, "false",
 			)
 		}
 	}
@@ -229,17 +241,21 @@ func init() {
 }
 
 func main() {
-	log.AddFlags(kingpin.CommandLine)
+	promlogConfig := &promlog.Config{}
+	flag.AddFlags(kingpin.CommandLine, promlogConfig)
+	var webConfig = webflag.AddFlags(kingpin.CommandLine)
 	kingpin.Version(version.Print("twitch_exporter"))
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
-	log.Infoln("Starting twitch_exporter", version.Info())
-	log.Infoln("Build context", version.BuildContext())
+	logger := promlog.New(promlogConfig)
+	level.Info(logger).Log("msg", "Starting twitch_exporter", "version", version.Info())
+	level.Info(logger).Log("build_context", version.BuildContext())
 
-	exporter, err := NewExporter()
+	exporter, err := NewExporter(logger)
 	if err != nil {
-		log.Fatalln(err)
+		level.Error(logger).Log("msg", "Error creating the exporter", "err", err)
+		os.Exit(1)
 	}
 	prometheus.MustRegister(exporter)
 
@@ -259,6 +275,10 @@ func main() {
 		}
 	})
 
-	log.Infoln("Listening on", *listenAddress)
-	log.Fatal(http.ListenAndServe(*listenAddress, nil))
+	level.Info(logger).Log("msg", "Listening on address", "address", *listenAddress)
+	srv := &http.Server{Addr: *listenAddress}
+	if err := web.ListenAndServe(srv, *webConfig, logger); err != nil {
+		level.Error(logger).Log("msg", "Error starting HTTP server", "err", err)
+		os.Exit(1)
+	}
 }

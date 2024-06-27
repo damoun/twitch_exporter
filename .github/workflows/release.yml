@@ -1,0 +1,42 @@
+---
+name: Release
+on:
+  push:
+    branches:
+      - main
+      - use-gha
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.6
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '^1.22.2'
+      - run: make promu
+      - run: promu crossbuild -v
+      - name: Store binaries artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: .build
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.6
+      - name: Download binaries artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: .build
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - run: make docker DOCKER_REPO=docker.io/damoun
+      - run: make docker-publish DOCKER_REPO=docker.io/damoun
+      - run: make docker-manifest DOCKER_REPO=docker.io/damoun

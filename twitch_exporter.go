@@ -8,23 +8,21 @@ import (
 	"net/http"
 	"os"
 
+	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-	"github.com/nicklaw5/helix"
+	helix "github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
+	versioncollector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
 	"github.com/prometheus/exporter-toolkit/web"
 	webflag "github.com/prometheus/exporter-toolkit/web/kingpinflag"
-	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
-	listenAddress = kingpin.Flag("web.listen-address",
-		"Address to listen on for web interface and telemetry.").
-		Default(":9184").String()
 	metricsPath = kingpin.Flag("web.telemetry-path",
 		"Path under which to expose metrics.").
 		Default("/metrics").String()
@@ -178,8 +176,8 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 	for _, user := range usersResp.Data.Users {
-		usersFollowsResp, err := e.client.GetUsersFollows(&helix.UsersFollowsParams{
-			ToID: user.ID,
+		usersFollowsResp, err := e.client.GetChannelFollows(&helix.GetChannelFollowsParams{
+			BroadcasterID: user.ID,
 		})
 		if err != nil {
 			level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", err)
@@ -237,13 +235,13 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 }
 
 func init() {
-	prometheus.MustRegister(version.NewCollector("twitch_exporter"))
+	prometheus.MustRegister(versioncollector.NewCollector("twitch_exporter"))
 }
 
 func main() {
 	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
-	var webConfig = webflag.AddFlags(kingpin.CommandLine)
+	var webConfig = webflag.AddFlags(kingpin.CommandLine, ":9184")
 	kingpin.Version(version.Print("twitch_exporter"))
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
@@ -275,9 +273,8 @@ func main() {
 		}
 	})
 
-	level.Info(logger).Log("msg", "Listening on address", "address", *listenAddress)
-	srv := &http.Server{Addr: *listenAddress}
-	if err := web.ListenAndServe(srv, *webConfig, logger); err != nil {
+	srv := &http.Server{}
+	if err := web.ListenAndServe(srv, webConfig, logger); err != nil {
 		level.Error(logger).Log("msg", "Error starting HTTP server", "err", err)
 		os.Exit(1)
 	}

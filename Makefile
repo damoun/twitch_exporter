@@ -5,3 +5,7 @@ DOCKER_REPO  ?= damoun
 include Makefile.common
 
 DOCKER_IMAGE_NAME ?= twitch-exporter
+
+promu-build:
+	@echo ">> running promu crossbuild -v"
+	promu crossbuild -v

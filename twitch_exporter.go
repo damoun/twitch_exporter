@@ -146,6 +146,11 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
+	if streamsResp.StatusCode != 200 { 
+		level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", streamsResp.ErrorMessage)
+		return
+	}
+
 	for _, stream := range streamsResp.Data.Streams {
 		gamesResp, err := e.client.GetGames(&helix.GamesParams{
 			IDs: []string{stream.GameID},
@@ -172,17 +177,27 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 		Logins: *twitchChannel,
 	})
 	if err != nil {
-		level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", err)
+		level.Error(e.logger).Log("msg", "Failed to collect users stats from Twitch helix API", "err", err)
 		return
 	}
+
+	if usersResp.StatusCode != 200 { 
+			level.Warn(e.logger).Log("msg", "Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
+	}
+
 	for _, user := range usersResp.Data.Users {
 		usersFollowsResp, err := e.client.GetChannelFollows(&helix.GetChannelFollowsParams{
 			BroadcasterID: user.ID,
 		})
 		if err != nil {
-			level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", err)
+			level.Error(e.logger).Log("msg", "Failed to collect follower stats from Twitch helix API", "err", err)
 			return
 		}
+
+		if usersFollowsResp.StatusCode != 200 { 
+			level.Warn(e.logger).Log("msg", "Failed to collect follower stats from Twitch helix API", "err", usersFollowsResp.ErrorMessage)
+		}
+
 		if _, ok := channelsLive[user.DisplayName]; !ok {
 			ch <- prometheus.MustNewConstMetric(
 				channelUp, prometheus.GaugeValue, 0,
@@ -201,9 +216,14 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			BroadcasterID: user.ID,
 		})
 		if err != nil {
-			level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", err)
+			level.Error(e.logger).Log("msg", "Failed to collect subscribers stats from Twitch helix API", "err", err)
 			return
 		}
+
+		if subscribtionsResp.StatusCode != 200 { 
+			level.Warn(e.logger).Log("msg", "Failed to collect subscirbers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
+		}
+
 		subCounter := make(map[string]int)
 		giftedSubCounter := make(map[string]int)
 		for _, subscription := range subscribtionsResp.Data.Subscriptions {

@@ -31,4 +31,7 @@ jobs:
         with:
           name: build
           path: .build
+      # See https://github.com/actions/upload-artifact/issues/38
+      - name: Fix permission on binaries artifacts
+        run: find . -type f -name 'twitch_exporter' -exec chmod +x {} +
       - run: make docker

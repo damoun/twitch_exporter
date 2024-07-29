@@ -23,6 +23,8 @@ jobs:
         with:
           name: build
           path: .build
+      - name: Test binary
+        run: .build/linux-amd64/twitch_exporter --help
 
   publish:
     needs: build
@@ -50,3 +52,4 @@ jobs:
           make docker-tag-latest DOCKER_IMAGE_TAG="${{ github.ref_name }}"
           make docker-publish DOCKER_IMAGE_TAG="latest"
           make docker-manifest DOCKER_IMAGE_TAG="latest"
+      - run: docker run docker.io/damoun/twitch-exporter-linux-amd64:main --help

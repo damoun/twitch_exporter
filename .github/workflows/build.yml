@@ -20,6 +20,8 @@ jobs:
         with:
           name: build
           path: .build
+      - name: Test binary
+        run: .build/linux-amd64/twitch_exporter --help
 
   docker:
     needs: golang
@@ -35,3 +37,4 @@ jobs:
       - name: Fix permission on binaries artifacts
         run: find . -type f -name 'twitch_exporter' -exec chmod +x {} +
       - run: make docker
+      - run: docker run docker.io/damoun/twitch-exporter-linux-amd64:HEAD --help

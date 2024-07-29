@@ -34,6 +34,9 @@ jobs:
         with:
           name: build
           path: .build
+      # See https://github.com/actions/upload-artifact/issues/38
+      - name: Fix permission on binaries artifacts
+        run: find . -type f -name 'twitch_exporter' -exec chmod +x {} +
       - name: Login to Docker Hub
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
         with:

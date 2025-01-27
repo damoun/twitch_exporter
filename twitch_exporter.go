@@ -26,10 +26,13 @@ var (
 	metricsPath = kingpin.Flag("web.telemetry-path",
 		"Path under which to expose metrics.").
 		Default("/metrics").String()
+	probePath = kingpin.Flag("web.probe-path",
+		"Path under which to expose probe metrics.").
+		Default("/probe").String()
 	twitchClientID = kingpin.Flag("twitch.client-id",
 		"Client ID for the Twitch Helix API.").Required().String()
 	twitchChannel = Channels(kingpin.Flag("twitch.channel",
-		"Name of a Twitch Channel to request metrics."))
+		"Name of a Twitch Channel to request metrics. (/probe will not use this value and instead use the ?target= query param)"))
 	twitchAccessToken = kingpin.Flag("twitch.access-token",
 		"Access Token for the Twitch Helix API.").Required().String()
 )
@@ -105,10 +108,12 @@ func (l promHTTPLogger) Println(v ...interface{}) {
 type Exporter struct {
 	client *helix.Client
 	logger log.Logger
+
+	twitchChannels ChannelNames
 }
 
 // NewExporter returns an initialized Exporter.
-func NewExporter(logger log.Logger) (*Exporter, error) {
+func NewExporter(logger log.Logger, twitchChannels ChannelNames) (*Exporter, error) {
 	client, err := helix.NewClient(&helix.Options{
 		ClientID:        *twitchClientID,
 		UserAccessToken: *twitchAccessToken,
@@ -120,6 +125,8 @@ func NewExporter(logger log.Logger) (*Exporter, error) {
 	return &Exporter{
 		client: client,
 		logger: logger,
+
+		twitchChannels: twitchChannels,
 	}, nil
 }
 
@@ -138,15 +145,15 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	channelsLive := make(map[string]bool)
 	streamsResp, err := e.client.GetStreams(&helix.StreamsParams{
-		UserLogins: *twitchChannel,
-		First:      len(*twitchChannel),
+		UserLogins: e.twitchChannels,
+		First:      len(e.twitchChannels),
 	})
 	if err != nil {
 		level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", err)
 		return
 	}
 
-	if streamsResp.StatusCode != 200 { 
+	if streamsResp.StatusCode != 200 {
 		level.Error(e.logger).Log("msg", "Failed to collect stats from Twitch helix API", "err", streamsResp.ErrorMessage)
 		return
 	}
@@ -174,15 +181,15 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	usersResp, err := e.client.GetUsers(&helix.UsersParams{
-		Logins: *twitchChannel,
+		Logins: e.twitchChannels,
 	})
 	if err != nil {
 		level.Error(e.logger).Log("msg", "Failed to collect users stats from Twitch helix API", "err", err)
 		return
 	}
 
-	if usersResp.StatusCode != 200 { 
-			level.Warn(e.logger).Log("msg", "Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
+	if usersResp.StatusCode != 200 {
+		level.Warn(e.logger).Log("msg", "Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
 	}
 
 	for _, user := range usersResp.Data.Users {
@@ -194,7 +201,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			return
 		}
 
-		if usersFollowsResp.StatusCode != 200 { 
+		if usersFollowsResp.StatusCode != 200 {
 			level.Warn(e.logger).Log("msg", "Failed to collect follower stats from Twitch helix API", "err", usersFollowsResp.ErrorMessage)
 		}
 
@@ -220,7 +227,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 			return
 		}
 
-		if subscribtionsResp.StatusCode != 200 { 
+		if subscribtionsResp.StatusCode != 200 {
 			level.Warn(e.logger).Log("msg", "Failed to collect subscirbers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
 		}
 
@@ -270,7 +277,7 @@ func main() {
 	level.Info(logger).Log("msg", "Starting twitch_exporter", "version", version.Info())
 	level.Info(logger).Log("build_context", version.BuildContext())
 
-	exporter, err := NewExporter(logger)
+	exporter, err := NewExporter(logger, *twitchChannel)
 	if err != nil {
 		level.Error(logger).Log("msg", "Error creating the exporter", "err", err)
 		os.Exit(1)
@@ -278,6 +285,8 @@ func main() {
 	prometheus.MustRegister(exporter)
 
 	http.Handle(*metricsPath, promhttp.Handler())
+	http.HandleFunc(*probePath, probeHandler(logger))
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, err := w.Write([]byte(`<html>
              <head><title>Twitch Exporter</title></head>
@@ -297,5 +306,31 @@ func main() {
 	if err := web.ListenAndServe(srv, webConfig, logger); err != nil {
 		level.Error(logger).Log("msg", "Error starting HTTP server", "err", err)
 		os.Exit(1)
+	}
+}
+
+func probeHandler(logger log.Logger) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		probeTarget := ChannelNames{}
+
+		if r.URL.Query().Has("target") {
+			probeTarget = append(probeTarget, r.URL.Query().Get("target"))
+		}
+
+		exporter, err := NewExporter(logger, probeTarget)
+		if err != nil {
+			level.Error(logger).Log("msg", "Error creating exporter for probe target", "err", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// we need a fresh prometheus registry, to only export the metrics for the probe
+		registry := prometheus.NewRegistry()
+		registry.MustRegister(exporter)
+
+		// we now manually execute the handler, as though the `/emtrics` endpoint would
+		// but with our configured exporter which contains the probe target
+		h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
+		h.ServeHTTP(w, r)
 	}
 }

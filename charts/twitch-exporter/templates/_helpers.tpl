@@ -49,14 +49,3 @@ Selector labels
 app.kubernetes.io/name: {{ include "twitch_exporter.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "twitch_exporter.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "twitch_exporter.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-{{- end }}

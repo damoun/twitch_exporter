@@ -14,6 +14,7 @@ values.yaml
 !charts/twitch-exporter/values.yaml
 
 # ignore helmfile, which is used to manage helm deployments
+helmfile.yaml
 
 # Test binary, build with `go test -c`
 *.test

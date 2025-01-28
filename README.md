@@ -59,6 +59,76 @@ docker run -d -p 9184:9184 \
         --twitch.channel dam0un
 ```
 
+## Using Helm
+[Helm](https://helm.sh) must be installed to use the charts.  Please refer to
+Helm's [documentation](https://helm.sh/docs) to get started.
+
+Once Helm has been set up correctly, add the repo as follows:
+
+  helm repo add twitch-exporter https://damoun.github.io/twitch-exporter
+
+If you had already added this repo earlier, run `helm repo update` to retrieve
+the latest versions of the packages.  You can then run `helm search repo
+twitch-exporter` to see the charts.
+
+To install the twitch-exporter chart:
+
+    helm install my-twitch-exporter twitch-exporter/twitch-exporter
+
+To uninstall the chart:
+
+    helm delete my-twitch-exporter
+
+## Using Helmfile
+You are able to use a helm chart to manage your exporter, create a file named
+`helmfile.yaml` and then add this:
+
+```yaml
+repositories:
+  - name: twitch-exporter
+    url: https://surdaft.github.com/twitch_exporter/
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+
+releases:
+  - name: alloy
+    namespace: twitch-exporter
+    chart: grafana/alloy
+    values:
+      - ./alloy.values.yaml
+
+  - name: twitch-exporter
+    namespace: twitch-exporter
+    chart: twitch-exporter/twitch-exporter
+    values:
+      - ./twitch-exporter.values.yaml
+```
+
+Then create a file called `alloy.values.yaml`:
+```yaml
+alloy:
+  configMap:
+    create: true
+    content: |-
+      prometheus.remote_write "mimir" {
+        endpoint {
+          # make sure to update this url with your proper push endpoint info,
+          # cloud for example required authentication.
+          url = "xxx/api/v1/push"
+        }
+      }
+
+      prometheus.scrape "twitch_exporter_metrics" {
+        targets         = [{__address__ = "twitch-exporter.twitch-exporter.svc:9184"}]
+        metrics_path    = "/metrics"
+        forward_to      = [prometheus.remote_write.mimir.receiver]
+        scrape_timeout  = "1m"
+        # twitch cache is going to be a pain anyway, so 5m scrape helps with any
+        # potential rate limits and works around cache
+        scrape_interval = "5m"
+      }
+```
+
 [circleci]: https://circleci.com/gh/damoun/twitch_exporter
 [hub]: https://hub.docker.com/r/damoun/twitch-exporter/
 [goreportcard]: https://goreportcard.com/report/github.com/damoun/twitch_exporter

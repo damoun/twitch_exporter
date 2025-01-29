@@ -90,7 +90,7 @@ You are able to use a helm chart to manage your exporter, create a file named
 ```yaml
 repositories:
   - name: twitch-exporter
-    url: https://surdaft.github.com/twitch_exporter/
+    url: https://damoun.github.com/twitch_exporter/
   - name: grafana
     url: https://grafana.github.io/helm-charts
 

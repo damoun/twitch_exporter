@@ -1,14 +1,15 @@
 package collector
 
 import (
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
+	"errors"
+	"log/slog"
+
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 type channelUpCollector struct {
-	logger       log.Logger
+	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
 
@@ -19,7 +20,7 @@ func init() {
 	registerCollector("channel_up", defaultEnabled, NewChannelUpCollector)
 }
 
-func NewChannelUpCollector(logger log.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error) {
+func NewChannelUpCollector(logger *slog.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error) {
 	c := channelUpCollector{
 		logger:       logger,
 		client:       client,
@@ -46,8 +47,8 @@ func (c channelUpCollector) Update(ch chan<- prometheus.Metric) error {
 	})
 
 	if err != nil {
-		level.Error(c.logger).Log("msg", "could not get streams", "err", err)
-		return err
+		c.logger.Error("could not get streams", slog.String("err", err.Error()))
+		return errors.Join(errors.New("could not get streams"), err)
 	}
 
 	for _, n := range c.channelNames {

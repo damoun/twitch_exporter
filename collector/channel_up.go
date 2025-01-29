@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/damoun/twitch_exporter/config"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -11,7 +12,7 @@ import (
 type channelUpCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
-	channelNames ChannelNames
+	channelNames *config.ChannelNames
 
 	channelUp typedDesc
 }
@@ -20,7 +21,7 @@ func init() {
 	registerCollector("channel_up", defaultEnabled, NewChannelUpCollector)
 }
 
-func NewChannelUpCollector(logger *slog.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error) {
+func NewChannelUpCollector(logger *slog.Logger, client *helix.Client, channelNames *config.ChannelNames) (Collector, error) {
 	c := channelUpCollector{
 		logger:       logger,
 		client:       client,
@@ -37,13 +38,13 @@ func NewChannelUpCollector(logger *slog.Logger, client *helix.Client, channelNam
 }
 
 func (c channelUpCollector) Update(ch chan<- prometheus.Metric) error {
-	if len(c.channelNames) == 0 {
+	if len(*c.channelNames) == 0 {
 		return ErrNoData
 	}
 
 	streamsResp, err := c.client.GetStreams(&helix.StreamsParams{
-		UserLogins: c.channelNames,
-		First:      len(c.channelNames),
+		UserLogins: *c.channelNames,
+		First:      len(*c.channelNames),
 	})
 
 	if err != nil {
@@ -51,7 +52,7 @@ func (c channelUpCollector) Update(ch chan<- prometheus.Metric) error {
 		return errors.Join(errors.New("could not get streams"), err)
 	}
 
-	for _, n := range c.channelNames {
+	for _, n := range *c.channelNames {
 		state := 0
 		game := ""
 

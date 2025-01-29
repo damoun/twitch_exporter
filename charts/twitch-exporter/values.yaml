@@ -2,6 +2,9 @@ twitch:
   clientId: ""
   accessToken: ""
   channels:
+    - jordofthenorth
+    - timthetatman
+    - dam0un
     - surdaft
 
 image:

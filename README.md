@@ -133,6 +133,23 @@ alloy:
       }
 ```
 
+Create a file named `twitch-exporter.values.yaml`
+```yaml
+twitch:
+  clientId: "muy2fhyb2esa49w3n70fpumxr78ruh"
+  accessToken: "dvmkxzay1xi4erxfu0x56h6qsfzukj"
+  channels:
+    - jordofthenorth
+    - timthetatman
+    - dam0un
+    - surdaft
+```
+
+> Note: You can add see more config options in charts/twitch-exporter/values.yaml.
+> Ingress is disabled by default, however you can enable it to allow for public
+> access to your exporter. Such as if you use a firewall and scrape from another
+> device.
+
 [circleci]: https://circleci.com/gh/damoun/twitch_exporter
 [hub]: https://hub.docker.com/r/damoun/twitch-exporter/
 [goreportcard]: https://goreportcard.com/report/github.com/damoun/twitch_exporter

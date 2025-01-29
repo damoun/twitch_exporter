@@ -130,7 +130,7 @@ func NewExporter(logger *slog.Logger, client *helix.Client, channelNames Channel
 	}
 
 	for k, _ := range collectors {
-		logger.Info("msg", "enabled collector", "collector", k)
+		logger.Debug("enabled collector", slog.String("collector", k))
 	}
 
 	return &Exporter{
@@ -159,15 +159,21 @@ func execute(name string, c Collector, ch chan<- prometheus.Metric, logger *slog
 	duration := time.Since(begin)
 	var success float64
 
+	attrs := []any{
+		slog.String("name", name),
+		slog.Float64("duration_seconds", duration.Seconds()),
+	}
+
 	if err != nil {
 		if IsNoDataError(err) {
-			logger.Error("collector returned no data", "name", name, "duration_seconds", duration.Seconds(), "err", err)
+			logger.Debug("collector returned no data", attrs...)
 		} else {
-			logger.Error("collector failed", "name", name, "duration_seconds", duration.Seconds(), "err", err)
+			attrs = append(attrs, slog.String("err", err.Error()))
+			logger.Error("collector failed", attrs...)
 		}
 		success = 0
 	} else {
-		logger.Info("collector succeeded", "name", name, "duration_seconds", duration.Seconds())
+		logger.Debug("collector succeeded", attrs...)
 		success = 1
 	}
 

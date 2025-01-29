@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"errors"
 	"log/slog"
 
 	"github.com/nicklaw5/helix/v2"
@@ -46,8 +47,8 @@ func (c ChannelViewersTotalCollector) Update(ch chan<- prometheus.Metric) error 
 	})
 
 	if err != nil {
-		c.logger.Error("msg", "could not get streams", "err", err)
-		return err
+		c.logger.Error("could not get streams", slog.String("err", err.Error()))
+		return errors.Join(errors.New("could not get streams"), err)
 	}
 
 	for _, s := range streamsResp.Data.Streams {

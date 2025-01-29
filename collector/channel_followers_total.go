@@ -46,13 +46,13 @@ func (c channelFollowersTotalCollector) Update(ch chan<- prometheus.Metric) erro
 	})
 
 	if err != nil {
-		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", err)
-		return err
+		c.logger.Error("Failed to collect users stats from Twitch helix API", slog.String("err", err.Error()))
+		return errors.Join(errors.New("Failed to collect users stats from Twitch helix API"), err)
 	}
 
 	if usersResp.StatusCode != 200 {
-		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
-		return errors.New(usersResp.ErrorMessage)
+		c.logger.Error("Failed to collect users stats from Twitch helix API", slog.String("err", usersResp.ErrorMessage))
+		return errors.Join(errors.New("Failed to collect users stats from Twitch helix API"), errors.New(usersResp.ErrorMessage))
 	}
 
 	// todo: we can avoid this with a shared cache of username to userID that has a short TTL
@@ -62,13 +62,13 @@ func (c channelFollowersTotalCollector) Update(ch chan<- prometheus.Metric) erro
 		})
 
 		if err != nil {
-			c.logger.Error("msg", "Failed to collect follower stats from Twitch helix API", "err", err)
-			return err
+			c.logger.Error("Failed to collect follower stats from Twitch helix API", slog.String("err", err.Error()))
+			return errors.Join(errors.New("Failed to collect follower stats from Twitch helix API"), err)
 		}
 
 		if usersFollowsResp.StatusCode != 200 {
-			c.logger.Error("msg", "Failed to collect follower stats from Twitch helix API", "err", usersFollowsResp.ErrorMessage)
-			return errors.New(usersFollowsResp.ErrorMessage)
+			c.logger.Error("Failed to collect follower stats from Twitch helix API", slog.String("err", usersFollowsResp.ErrorMessage))
+			return errors.Join(errors.New("Failed to collect follower stats from Twitch helix API"), errors.New(usersFollowsResp.ErrorMessage))
 		}
 
 		ch <- c.channelFollowers.mustNewConstMetric(float64(usersFollowsResp.Data.Total), user.DisplayName)

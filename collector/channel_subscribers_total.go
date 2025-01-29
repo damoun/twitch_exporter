@@ -51,13 +51,13 @@ func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 	})
 
 	if err != nil {
-		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", err)
-		return err
+		c.logger.Error("Failed to collect users stats from Twitch helix API", slog.String("err", err.Error()))
+		return errors.Join(errors.New("Failed to collect users stats from Twitch helix API"), err)
 	}
 
 	if usersResp.StatusCode != 200 {
-		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
-		return errors.New(usersResp.ErrorMessage)
+		c.logger.Error("Failed to collect users stats from Twitch helix API", slog.String("err", usersResp.ErrorMessage))
+		return errors.Join(errors.New("Failed to collect users stats from Twitch helix API"), errors.New(usersResp.ErrorMessage))
 	}
 
 	// todo: we can avoid this with a shared cache of username to userID that has a short TTL
@@ -67,13 +67,13 @@ func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 		})
 
 		if err != nil {
-			c.logger.Error("msg", "Failed to collect subscribers stats from Twitch helix API", "err", err)
-			return err
+			c.logger.Error("Failed to collect subscribers stats from Twitch helix API", slog.String("err", err.Error()))
+			return errors.Join(errors.New("Failed to collect subscribers stats from Twitch helix API"), err)
 		}
 
 		if subscribtionsResp.StatusCode != 200 {
-			c.logger.Error("msg", "Failed to collect subscirbers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
-			return errors.New(subscribtionsResp.ErrorMessage)
+			c.logger.Error("Failed to collect subscirbers stats from Twitch helix API", slog.String("err", subscribtionsResp.ErrorMessage))
+			return errors.Join(errors.New("Failed to collect subscirbers stats from Twitch helix API"), errors.New(subscribtionsResp.ErrorMessage))
 		}
 
 		subCounter := make(map[string]int)

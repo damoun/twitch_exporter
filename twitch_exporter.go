@@ -39,7 +39,7 @@ type promHTTPLogger struct {
 }
 
 func (l promHTTPLogger) Println(v ...interface{}) {
-	l.logger.Error("msg", fmt.Sprint(v...))
+	slog.Info(fmt.Sprint(v...))
 }
 
 // Channels creates a collection of Channels from a kingpin command line argument.
@@ -62,8 +62,8 @@ func main() {
 	kingpin.Parse()
 
 	logger := promslog.New(promslogConfig)
-	logger.Info("msg", "Starting twitch_exporter", "version", version.Info())
-	logger.Info("build_context", version.BuildContext())
+	logger.Info("Starting twitch_exporter", slog.String("version", version.Info()))
+	logger.Info("build_context", slog.Any("context", version.BuildContext()))
 
 	client, err := helix.NewClient(&helix.Options{
 		ClientID:        *twitchClientID,
@@ -71,13 +71,13 @@ func main() {
 	})
 
 	if err != nil {
-		logger.Error("msg", "could not initialise twitch client", "err", err)
+		logger.Error("could not initialise twitch client", slog.String("err", err.Error()))
 		return
 	}
 
 	exporter, err := collector.NewExporter(logger, client, *twitchChannel)
 	if err != nil {
-		logger.Error("msg", "Error creating the exporter", "err", err)
+		logger.Error("Error creating the exporter", slog.String("err", err.Error()))
 		os.Exit(1)
 	}
 
@@ -106,7 +106,7 @@ func main() {
 
 	srv := &http.Server{}
 	if err := web.ListenAndServe(srv, webConfig, logger); err != nil {
-		logger.Error("msg", "Error starting HTTP server", "err", err)
+		slog.Error("Error starting HTTP server", slog.String("err", err.Error()))
 		os.Exit(1)
 	}
 }

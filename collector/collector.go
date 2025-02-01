@@ -39,14 +39,14 @@ const (
 )
 
 var (
-	factories              = make(map[string]func(logger *slog.Logger, client *helix.Client, channelNames *config.ChannelNames) (Collector, error))
+	factories              = make(map[string]func(logger *slog.Logger, client *helix.Client, cfg *config.Config) (Collector, error))
 	initiatedCollectorsMtx = sync.Mutex{}
 	initiatedCollectors    = make(map[string]Collector)
 	collectorState         = make(map[string]*bool)
 	forcedCollectors       = map[string]bool{} // collectors which have been explicitly enabled or disabled
 )
 
-func registerCollector(collector string, isDefaultEnabled bool, factory func(logger *slog.Logger, client *helix.Client, channelNames *config.ChannelNames) (Collector, error)) {
+func registerCollector(collector string, isDefaultEnabled bool, factory func(logger *slog.Logger, client *helix.Client, cfg *config.Config) (Collector, error)) {
 	var helpDefaultState string
 	if isDefaultEnabled {
 		helpDefaultState = "enabled"
@@ -135,7 +135,7 @@ func NewExporter(logger *slog.Logger, sc *config.SafeConfig, filters ...string) 
 		if collector, ok := initiatedCollectors[key]; ok {
 			collectors[key] = collector
 		} else {
-			collector, err := factories[key](logger, client, conf.Twitch.Channels)
+			collector, err := factories[key](logger, client, conf)
 			if err != nil {
 				return nil, err
 			}

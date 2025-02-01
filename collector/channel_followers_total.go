@@ -21,11 +21,11 @@ func init() {
 	registerCollector("channel_followers_total", defaultEnabled, NewChannelFollowersTotalCollector)
 }
 
-func NewChannelFollowersTotalCollector(logger *slog.Logger, client *helix.Client, channelNames *config.ChannelNames) (Collector, error) {
+func NewChannelFollowersTotalCollector(logger *slog.Logger, client *helix.Client, cfg *config.Config) (Collector, error) {
 	c := channelFollowersTotalCollector{
 		logger:       logger,
 		client:       client,
-		channelNames: channelNames,
+		channelNames: cfg.Twitch.Channels,
 
 		channelFollowers: typedDesc{prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "channel_followers_total"),

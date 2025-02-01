@@ -28,9 +28,7 @@ var (
 	sc = config.NewSafeConfig(prometheus.DefaultRegisterer)
 
 	configFile  = kingpin.Flag("config.file", "Twitch exporter configuration file.").Default("twitch_exporter.yml").String()
-	metricsPath = kingpin.Flag("web.telemetry-path",
-		"Path under which to expose metrics.").
-		Default("/metrics").String()
+	metricsPath = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
 )
 
 type promHTTPLogger struct {
@@ -60,7 +58,7 @@ func main() {
 
 	if err := sc.ReloadConfig(*configFile, logger); err != nil {
 		logger.Error("Error loading config", "err", err)
-		return
+		os.Exit(1)
 	}
 
 	exporter, err := collector.NewExporter(logger, sc)

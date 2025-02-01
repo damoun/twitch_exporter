@@ -11,3 +11,7 @@ twitch_exporter
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Ignore config files
+twitch_exporter.yml
+*.twitch_exporter.yml

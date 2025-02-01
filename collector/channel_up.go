@@ -21,11 +21,11 @@ func init() {
 	registerCollector("channel_up", defaultEnabled, NewChannelUpCollector)
 }
 
-func NewChannelUpCollector(logger *slog.Logger, client *helix.Client, channelNames *config.ChannelNames) (Collector, error) {
+func NewChannelUpCollector(logger *slog.Logger, client *helix.Client, cfg *config.Config) (Collector, error) {
 	c := channelUpCollector{
 		logger:       logger,
 		client:       client,
-		channelNames: channelNames,
+		channelNames: cfg.Twitch.Channels,
 
 		channelUp: typedDesc{prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "channel_up"),

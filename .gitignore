@@ -5,6 +5,7 @@
 *.so
 *.dylib
 twitch_exporter
+__debug_*
 
 # ignore helm chart configuration if local
 values.yaml

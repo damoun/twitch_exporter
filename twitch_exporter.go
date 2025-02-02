@@ -25,7 +25,8 @@ import (
 )
 
 var (
-	sc = config.NewSafeConfig(prometheus.DefaultRegisterer)
+	r  = prometheus.NewRegistry()
+	sc = config.NewSafeConfig(r)
 
 	configFile  = kingpin.Flag("config.file", "Twitch exporter configuration file.").Default("twitch_exporter.yml").String()
 	metricsPath = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
@@ -67,7 +68,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	r := prometheus.NewRegistry()
 	r.MustRegister(exporter)
 
 	hup := make(chan os.Signal, 1)
@@ -81,12 +81,17 @@ func main() {
 					logger.Error("Error reloading config", "err", err)
 					continue
 				}
+
+				exporter.Reload()
+
 				logger.Info("Reloaded config file")
 			case rc := <-reloadCh:
 				if err := sc.ReloadConfig(*configFile, logger); err != nil {
 					logger.Error("Error reloading config", "err", err)
 					rc <- err
 				} else {
+					exporter.Reload()
+
 					logger.Info("Reloaded config file")
 					rc <- nil
 				}

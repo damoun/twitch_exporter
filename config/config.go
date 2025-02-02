@@ -57,8 +57,15 @@ func (c ChannelNames) IsCumulative() bool {
 }
 
 // Set sets the value of a ChannelNames
-func (c *ChannelNames) Set(v string) error {
-	*c = append(*c, v)
+func (c *ChannelNames) Set(v ...string) error {
+	for _, s := range v {
+		if s == "" || len(s) == 0 {
+			continue
+		}
+
+		*c = append(*c, s)
+	}
+
 	return nil
 }
 
@@ -80,13 +87,13 @@ func Channels(s *[]string) (target *ChannelNames) {
 
 func NewSafeConfig(reg prometheus.Registerer) *SafeConfig {
 	configReloadSuccess := promauto.With(reg).NewGauge(prometheus.GaugeOpts{
-		Namespace: "blackbox_exporter",
+		Namespace: "twitch_exporter",
 		Name:      "config_last_reload_successful",
-		Help:      "Blackbox exporter config loaded successfully.",
+		Help:      "Twitch exporter config loaded successfully.",
 	})
 
 	configReloadSeconds := promauto.With(reg).NewGauge(prometheus.GaugeOpts{
-		Namespace: "blackbox_exporter",
+		Namespace: "twitch_exporter",
 		Name:      "config_last_reload_success_timestamp_seconds",
 		Help:      "Timestamp of the last successful configuration reload.",
 	})
@@ -126,7 +133,7 @@ func (sc *SafeConfig) ReloadConfig(confFile string, logger *slog.Logger) (err er
 	}
 
 	if twitchChannel != nil && len(*twitchChannel) > 0 {
-		c.Twitch.Channels = Channels(twitchChannel)
+		c.Twitch.Channels.Set(*twitchChannel...)
 	}
 
 	if c.Twitch.ClientID == "" {

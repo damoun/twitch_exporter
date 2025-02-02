@@ -66,8 +66,11 @@ func registerCollector(collector string, isDefaultEnabled bool, factory func(log
 
 type Exporter struct {
 	Collectors map[string]Collector
-	client     *helix.Client
-	logger     *slog.Logger
+	filters    []string
+	sc         *config.SafeConfig
+
+	client *helix.Client
+	logger *slog.Logger
 }
 
 // Describe describes all the metrics ever exported by the Twitch exporter. It
@@ -97,21 +100,7 @@ func collectorFlagAction(collector string) func(ctx *kingpin.ParseContext) error
 	}
 }
 
-func NewExporter(logger *slog.Logger, sc *config.SafeConfig, filters ...string) (*Exporter, error) {
-	sc.Lock()
-	conf := sc.C
-	sc.Unlock()
-
-	client, err := helix.NewClient(&helix.Options{
-		ClientID:        conf.Twitch.ClientID,
-		UserAccessToken: conf.Twitch.AccessToken,
-	})
-
-	if err != nil {
-		logger.Error("could not initialise twitch client", slog.String("err", err.Error()))
-		return nil, err
-	}
-
+func populateFilter(filters []string) (map[string]bool, error) {
 	f := make(map[string]bool)
 	for _, filter := range filters {
 		enabled, exist := collectorState[filter]
@@ -125,6 +114,45 @@ func NewExporter(logger *slog.Logger, sc *config.SafeConfig, filters ...string) 
 		f[filter] = true
 	}
 
+	return f, nil
+}
+
+func NewExporter(logger *slog.Logger, sc *config.SafeConfig, filters ...string) (*Exporter, error) {
+	e := &Exporter{
+		filters: filters,
+		sc:      sc,
+		logger:  logger,
+	}
+
+	if err := e.Reload(); err != nil {
+		return nil, err
+	}
+
+	return e, nil
+}
+
+func (e *Exporter) Reload() error {
+	initiatedCollectors = make(map[string]Collector)
+
+	e.sc.Lock()
+	conf := e.sc.C
+	e.sc.Unlock()
+
+	client, err := helix.NewClient(&helix.Options{
+		ClientID:       conf.Twitch.ClientID,
+		AppAccessToken: conf.Twitch.AccessToken,
+	})
+
+	if err != nil {
+		e.logger.Error("could not initialise twitch client", slog.String("err", err.Error()))
+		return err
+	}
+
+	f, err := populateFilter(e.filters)
+	if err != nil {
+		return err
+	}
+
 	collectors := make(map[string]Collector)
 	initiatedCollectorsMtx.Lock()
 	defer initiatedCollectorsMtx.Unlock()
@@ -135,25 +163,18 @@ func NewExporter(logger *slog.Logger, sc *config.SafeConfig, filters ...string) 
 		if collector, ok := initiatedCollectors[key]; ok {
 			collectors[key] = collector
 		} else {
-			collector, err := factories[key](logger, client, conf)
+			collector, err := factories[key](e.logger, client, conf)
 			if err != nil {
-				return nil, err
+				return err
 			}
+
 			collectors[key] = collector
 			initiatedCollectors[key] = collector
 		}
 	}
 
-	for k := range collectors {
-		logger.Debug("enabled collector", slog.String("collector", k))
-	}
-
-	return &Exporter{
-		Collectors: collectors,
-
-		client: client,
-		logger: logger,
-	}, nil
+	e.Collectors = collectors
+	return nil
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {

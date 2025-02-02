@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/damoun/twitch_exporter/config"
+	"github.com/damoun/twitch_exporter/twitch"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -42,22 +43,13 @@ func (c channelFollowersTotalCollector) Update(ch chan<- prometheus.Metric) erro
 		return ErrNoData
 	}
 
-	usersResp, err := c.client.GetUsers(&helix.UsersParams{
-		Logins: *c.channelNames,
-	})
-
+	users, err := twitch.GetUsersByUsername(c.logger, c.client, *c.channelNames)
 	if err != nil {
-		c.logger.Error("Failed to collect users stats from Twitch helix API", slog.String("err", err.Error()))
-		return errors.Join(errors.New("failed to collect users stats from Twitch helix API"), err)
+		err = errors.Join(errors.New("failed to get user by username for channel_followers_total"), err)
+		return err
 	}
 
-	if usersResp.StatusCode != 200 {
-		c.logger.Error("Failed to collect users stats from Twitch helix API", slog.String("err", usersResp.ErrorMessage))
-		return errors.Join(errors.New("failed to collect users stats from Twitch helix API"), errors.New(usersResp.ErrorMessage))
-	}
-
-	// todo: we can avoid this with a shared cache of username to userID that has a short TTL
-	for _, user := range usersResp.Data.Users {
+	for _, user := range *users {
 		usersFollowsResp, err := c.client.GetChannelFollows(&helix.GetChannelFollowsParams{
 			BroadcasterID: user.ID,
 		})

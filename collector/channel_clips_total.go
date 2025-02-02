@@ -1,8 +1,8 @@
 package collector
 
 import (
+	"errors"
 	"log/slog"
-	"time"
 
 	"github.com/damoun/twitch_exporter/config"
 	"github.com/damoun/twitch_exporter/twitch"
@@ -20,11 +20,10 @@ type channelClipsTotalCollector struct {
 }
 
 func init() {
-	// registerCollector("channel_clips_total", defaultEnabled, NewChannelClipsTotalCollector)
+	registerCollector("channel_clips_total", defaultEnabled, NewChannelClipsTotalCollector)
 }
 
 func NewChannelClipsTotalCollector(logger *slog.Logger, client *helix.Client, cfg *config.Config) (Collector, error) {
-	slog.Info("test", slog.Any("client", client), slog.Any("cfg", cfg))
 	c := channelClipsTotalCollector{
 		logger:       logger,
 		client:       client,
@@ -45,19 +44,13 @@ func (c channelClipsTotalCollector) Update(ch chan<- prometheus.Metric) error {
 		return ErrNoData
 	}
 
-	usersResp, _ := c.client.GetUsers(&helix.UsersParams{
-		Logins: []string{"timthetatman"},
-	})
+	users, err := twitch.GetUsersByUsername(c.logger, c.client, *c.channelNames)
+	if err != nil {
+		err = errors.Join(errors.New("failed to get user by username for channel_clips_total"), err)
+		return err
+	}
 
-	slog.Info("test", slog.Any("resp", usersResp))
-
-	for _, channel := range *c.channelNames {
-		user, err := twitch.GetUserByUsername(c.logger, c.client, channel)
-		if err != nil {
-			c.logger.Error("failed to get user by username for channel_clips_total", slog.String("err", err.Error()))
-			continue
-		}
-
+	for _, user := range *users {
 		clipsCount, err := c.getClipsCount(user.ID, "", 0)
 		if err != nil {
 			c.logger.Error("could not get clips count", slog.String("err", err.Error()))
@@ -71,14 +64,10 @@ func (c channelClipsTotalCollector) Update(ch chan<- prometheus.Metric) error {
 }
 
 func (c channelClipsTotalCollector) getClipsCount(id string, cursor string, count int) (int, error) {
-	startedAt := helix.Time{}
-	startedAt.Time = time.Now().Add(-24 * time.Hour)
-
 	clipsResp, err := c.client.GetClips(&helix.ClipsParams{
 		BroadcasterID: id,
 		First:         100,
 		After:         cursor,
-		StartedAt:     startedAt,
 	})
 
 	if err != nil {

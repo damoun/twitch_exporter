@@ -2,6 +2,7 @@ package twitch
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -18,10 +19,11 @@ var (
 
 // GetChannel
 // caches the user in memory for 24hrs, to help reduce unnecessary API calls
-func GetUserByUsername(logger *slog.Logger, c *helix.Client, username string) (*helix.User, error) {
+func GetUsersByUsername(logger *slog.Logger, c *helix.Client, usernames []string) (*[]helix.User, error) {
 	ctx := context.Background()
 
-	cacheKey := buildCacheKey("channel", "username", username)
+	cacheKey := buildCacheKey("channel", "username", base64.StdEncoding.EncodeToString([]byte(strings.Join(usernames, "-"))))
+	slog.Info("checking cache for user", "key", cacheKey)
 
 	// check if we already have it in cache
 	data, err := cache.DefaultCache.Get(ctx, cacheKey)
@@ -32,15 +34,14 @@ func GetUserByUsername(logger *slog.Logger, c *helix.Client, username string) (*
 
 	// if we do then unmarshal that and return it
 	if len(data) > 0 {
-		usr := &helix.User{}
-		json.Unmarshal(data, &usr)
-		return usr, nil
+		usrs := &[]helix.User{}
+		json.Unmarshal(data, &usrs)
+		return usrs, nil
 	}
 
-	slog.Info("test", slog.Any("c", c))
 	// we need to get a fresh api call
 	usersResp, err := c.GetUsers(&helix.UsersParams{
-		Logins: []string{username},
+		Logins: usernames,
 	})
 
 	if err != nil {
@@ -56,8 +57,8 @@ func GetUserByUsername(logger *slog.Logger, c *helix.Client, username string) (*
 		return nil, nil
 	}
 
-	usr := usersResp.Data.Users[0]
-	cacheData, err := json.Marshal(usr)
+	usrs := usersResp.Data.Users
+	cacheData, err := json.Marshal(usrs)
 	if err != nil {
 		// warn since we want to express something went wrong, but we don't want to prevent
 		// a response due to cache being unavailable
@@ -69,7 +70,7 @@ func GetUserByUsername(logger *slog.Logger, c *helix.Client, username string) (*
 		}
 	}
 
-	return &usr, nil
+	return &usrs, nil
 }
 
 func buildCacheKey(parts ...string) string {

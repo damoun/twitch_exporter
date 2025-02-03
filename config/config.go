@@ -31,6 +31,8 @@ type Config struct {
 type twitch struct {
 	// twitch client id
 	ClientID string `yaml:"client-id"`
+	// unrequired, currently only used by script
+	ClientSecret string `yaml:"client-secret"`
 	// twitch client secret, can be either an access token or app token.
 	// available collectors will depend on type of token used
 	AccessToken string `yaml:"access-token"`

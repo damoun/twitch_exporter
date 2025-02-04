@@ -38,6 +38,10 @@ make
 * __`version`:__ Show application version.
 * __`web.listen-address`:__ Address to listen on for web interface and telemetry.
 * __`web.telemetry-path`:__ Path under which to expose metrics.
+* __`--[no-]collector.channel_followers_total`:__ Enable the channel_followers_total collector (default: enabled).
+* __`--[no-]collector.channel_subscribers_total`:__ Enable the channel_subscribers_total collector (default: disabled)..
+* __`--[no-]collector.channel_up`:__ Enable the channel_up collector (default: enabled).
+* __`--[no-]collector.channel_viewers_total`:__ Enable the channel_viewers_total collector (default: enabled).
 
 ## Useful Queries
 

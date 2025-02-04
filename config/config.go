@@ -14,12 +14,13 @@ import (
 )
 
 var (
-	twitchClientID    = kingpin.Flag("twitch.client-id", "Client ID for the Twitch Helix API.").Default("").String()
-	twitchAccessToken = kingpin.Flag("twitch.access-token", "Access Token for the Twitch Helix API.").Default("").String()
-	twitchChannel     = kingpin.Flag("twitch.channel", "Name of a Twitch Channel to request metrics.").Default("").Strings()
+	twitchClientID     = kingpin.Flag("twitch.client-id", "Client ID for the Twitch Helix API.").Default("").String()
+	twitchClientSecret = kingpin.Flag("twitch.client-secret", "Client Secret for the Twitch Helix API.").Default("").String()
+	twitchAccessToken  = kingpin.Flag("twitch.access-token", "User Access Token for the Twitch Helix API.").Default("").String()
+	twitchChannel      = kingpin.Flag("twitch.channel", "Name of a Twitch Channel to request metrics.").Default("").Strings()
 
-	ErrMissingClientID    = errors.New("missing client id config")
-	ErrMissingAccessToken = errors.New("missing access token config")
+	ErrMissingClientID = errors.New("missing client id config")
+	ErrMissingAuth     = errors.New("missing client secret or access token config")
 )
 
 // twitch_exporter config
@@ -31,10 +32,13 @@ type Config struct {
 type twitch struct {
 	// twitch client id
 	ClientID string `yaml:"client-id"`
-	// unrequired, currently only used by script
+	// client secret to enable automatic refresh of tokens
 	ClientSecret string `yaml:"client-secret"`
-	// twitch client secret, can be either an access token or app token.
-	// available collectors will depend on type of token used
+	// required to refresh tokens, if not present then app
+	// will fallback to no refresh
+	RefreshToken string `yaml:"refresh-token"`
+	// optional if client secret is provided, app will generate
+	// its own access token, but with less access (eg sub count)
 	AccessToken string `yaml:"access-token"`
 	// list of channels to monitor
 	Channels *ChannelNames `yaml:"channels"`
@@ -130,6 +134,10 @@ func (sc *SafeConfig) ReloadConfig(confFile string, logger *slog.Logger) (err er
 		c.Twitch.ClientID = *twitchClientID
 	}
 
+	if twitchClientSecret != nil && *twitchClientSecret != "" {
+		c.Twitch.ClientSecret = *twitchClientSecret
+	}
+
 	if twitchAccessToken != nil && *twitchAccessToken != "" {
 		c.Twitch.AccessToken = *twitchAccessToken
 	}
@@ -142,8 +150,8 @@ func (sc *SafeConfig) ReloadConfig(confFile string, logger *slog.Logger) (err er
 		return ErrMissingClientID
 	}
 
-	if c.Twitch.AccessToken == "" {
-		return ErrMissingAccessToken
+	if c.Twitch.AccessToken == "" && c.Twitch.ClientSecret == "" {
+		return ErrMissingAuth
 	}
 
 	if len(*c.Twitch.Channels) == 0 {

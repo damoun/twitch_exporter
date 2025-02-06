@@ -6,12 +6,11 @@ package collector
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -39,14 +38,14 @@ const (
 )
 
 var (
-	factories              = make(map[string]func(logger log.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error))
+	factories              = make(map[string]func(logger *slog.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error))
 	initiatedCollectorsMtx = sync.Mutex{}
 	initiatedCollectors    = make(map[string]Collector)
 	collectorState         = make(map[string]*bool)
 	forcedCollectors       = map[string]bool{} // collectors which have been explicitly enabled or disabled
 )
 
-func registerCollector(collector string, isDefaultEnabled bool, factory func(logger log.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error)) {
+func registerCollector(collector string, isDefaultEnabled bool, factory func(logger *slog.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error)) {
 	var helpDefaultState string
 	if isDefaultEnabled {
 		helpDefaultState = "enabled"
@@ -67,7 +66,7 @@ func registerCollector(collector string, isDefaultEnabled bool, factory func(log
 type Exporter struct {
 	Collectors map[string]Collector
 	client     *helix.Client
-	logger     log.Logger
+	logger     *slog.Logger
 }
 
 // Describe describes all the metrics ever exported by the Twitch exporter. It
@@ -97,7 +96,7 @@ func collectorFlagAction(collector string) func(ctx *kingpin.ParseContext) error
 	}
 }
 
-func NewExporter(logger log.Logger, client *helix.Client, channelNames ChannelNames, filters ...string) (*Exporter, error) {
+func NewExporter(logger *slog.Logger, client *helix.Client, channelNames ChannelNames, filters ...string) (*Exporter, error) {
 	f := make(map[string]bool)
 	for _, filter := range filters {
 		enabled, exist := collectorState[filter]
@@ -131,7 +130,7 @@ func NewExporter(logger log.Logger, client *helix.Client, channelNames ChannelNa
 	}
 
 	for k, _ := range collectors {
-		level.Info(logger).Log("msg", "enabled collector", "collector", k)
+		logger.Info("msg", "enabled collector", "collector", k)
 	}
 
 	return &Exporter{
@@ -154,7 +153,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	wg.Wait()
 }
 
-func execute(name string, c Collector, ch chan<- prometheus.Metric, logger log.Logger) {
+func execute(name string, c Collector, ch chan<- prometheus.Metric, logger *slog.Logger) {
 	begin := time.Now()
 	err := c.Update(ch)
 	duration := time.Since(begin)
@@ -162,13 +161,13 @@ func execute(name string, c Collector, ch chan<- prometheus.Metric, logger log.L
 
 	if err != nil {
 		if IsNoDataError(err) {
-			level.Error(logger).Log("collector returned no data", "name", name, "duration_seconds", duration.Seconds(), "err", err)
+			logger.Error("collector returned no data", "name", name, "duration_seconds", duration.Seconds(), "err", err)
 		} else {
-			level.Error(logger).Log("collector failed", "name", name, "duration_seconds", duration.Seconds(), "err", err)
+			logger.Error("collector failed", "name", name, "duration_seconds", duration.Seconds(), "err", err)
 		}
 		success = 0
 	} else {
-		level.Info(logger).Log("collector succeeded", "name", name, "duration_seconds", duration.Seconds())
+		logger.Info("collector succeeded", "name", name, "duration_seconds", duration.Seconds())
 		success = 1
 	}
 

@@ -1,0 +1,26 @@
+twitch:
+  clientId: ""
+  accessToken: ""
+  channels:
+    - jordofthenorth
+    - timthetatman
+    - dam0un
+    - surdaft
+
+image:
+  repository: damoun/twitch-exporter
+  pullPolicy: Always
+  tag: "latest"
+
+serviceAccount:
+  create: true
+  automount: true
+
+service:
+  type: ClusterIP
+  port: 9184
+
+ingress:
+  enabled: false
+
+resources: {}

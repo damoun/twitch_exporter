@@ -6,6 +6,16 @@
 *.dylib
 twitch_exporter
 
+# ignore helm chart configuration if local
+values.yaml
+*.values.yaml
+
+# Don't ignore committing the helm chart values file
+!charts/twitch-exporter/values.yaml
+
+# ignore helmfile, which is used to manage helm deployments
+helmfile.yaml
+
 # Test binary, build with `go test -c`
 *.test
 

@@ -16,8 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	versioncollector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/promlog"
-	"github.com/prometheus/common/promlog/flag"
+	"github.com/prometheus/common/promslog/flag"
 	"github.com/prometheus/common/version"
 	"github.com/prometheus/exporter-toolkit/web"
 	webflag "github.com/prometheus/exporter-toolkit/web/kingpinflag"
@@ -55,14 +54,14 @@ func init() {
 }
 
 func main() {
-	promlogConfig := &promlog.Config{}
-	flag.AddFlags(kingpin.CommandLine, promlogConfig)
+	promslogConfig := &promslog.Config{}
+	flag.AddFlags(kingpin.CommandLine, promslogConfig)
 	var webConfig = webflag.AddFlags(kingpin.CommandLine, ":9184")
 	kingpin.Version(version.Print("twitch_exporter"))
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
-	logger := promlog.New(promlogConfig)
+	logger := promslog.New(promslogConfig)
 	level.Info(logger).Log("msg", "Starting twitch_exporter", "version", version.Info())
 	level.Info(logger).Log("build_context", version.BuildContext())
 

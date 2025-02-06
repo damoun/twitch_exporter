@@ -5,7 +5,7 @@ require (
 	github.com/go-kit/log v0.2.1
 	github.com/nicklaw5/helix/v2 v2.31.0
 	github.com/prometheus/client_golang v1.20.5
-	github.com/prometheus/common v0.55.0
+	github.com/prometheus/common v0.62.0
 	github.com/prometheus/exporter-toolkit v0.11.0
 )
 

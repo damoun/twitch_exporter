@@ -20,6 +20,7 @@ jobs:
         with:
           name: build
           path: .build
+          if-no-files-found: error
       - name: Test binary
         run: .build/linux-amd64/twitch_exporter --help
 

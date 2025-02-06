@@ -2,9 +2,8 @@ package collector
 
 import (
 	"errors"
+	"log/slog"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -15,7 +14,7 @@ const (
 )
 
 type ChannelSubscriberTotalCollector struct {
-	logger       log.Logger
+	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
 
@@ -26,7 +25,7 @@ func init() {
 	registerCollector("channel_subscribers_total", defaultDisabled, NewChannelSubscriberTotalCollector)
 }
 
-func NewChannelSubscriberTotalCollector(logger log.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error) {
+func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error) {
 	c := ChannelSubscriberTotalCollector{
 		logger:       logger,
 		client:       client,
@@ -52,12 +51,12 @@ func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 	})
 
 	if err != nil {
-		level.Error(c.logger).Log("msg", "Failed to collect users stats from Twitch helix API", "err", err)
+		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", err)
 		return err
 	}
 
 	if usersResp.StatusCode != 200 {
-		level.Error(c.logger).Log("msg", "Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
+		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
 		return errors.New(usersResp.ErrorMessage)
 	}
 
@@ -68,12 +67,12 @@ func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 		})
 
 		if err != nil {
-			level.Error(c.logger).Log("msg", "Failed to collect subscribers stats from Twitch helix API", "err", err)
+			c.logger.Error("msg", "Failed to collect subscribers stats from Twitch helix API", "err", err)
 			return err
 		}
 
 		if subscribtionsResp.StatusCode != 200 {
-			level.Error(c.logger).Log("msg", "Failed to collect subscirbers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
+			c.logger.Error("msg", "Failed to collect subscirbers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
 			return errors.New(subscribtionsResp.ErrorMessage)
 		}
 

@@ -5,13 +5,12 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 
 	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/damoun/twitch_exporter/collector"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
 	versioncollector "github.com/prometheus/client_golang/prometheus/collectors/version"
@@ -36,11 +35,11 @@ var (
 )
 
 type promHTTPLogger struct {
-	logger log.Logger
+	logger *slog.Logger
 }
 
 func (l promHTTPLogger) Println(v ...interface{}) {
-	level.Error(l.logger).Log("msg", fmt.Sprint(v...))
+	l.logger.Error("msg", fmt.Sprint(v...))
 }
 
 // Channels creates a collection of Channels from a kingpin command line argument.
@@ -63,8 +62,8 @@ func main() {
 	kingpin.Parse()
 
 	logger := promslog.New(promslogConfig)
-	level.Info(logger).Log("msg", "Starting twitch_exporter", "version", version.Info())
-	level.Info(logger).Log("build_context", version.BuildContext())
+	logger.Info("msg", "Starting twitch_exporter", "version", version.Info())
+	logger.Info("build_context", version.BuildContext())
 
 	client, err := helix.NewClient(&helix.Options{
 		ClientID:        *twitchClientID,
@@ -72,13 +71,13 @@ func main() {
 	})
 
 	if err != nil {
-		level.Error(logger).Log("msg", "could not initialise twitch client", "err", err)
+		logger.Error("msg", "could not initialise twitch client", "err", err)
 		return
 	}
 
 	exporter, err := collector.NewExporter(logger, client, *twitchChannel)
 	if err != nil {
-		level.Error(logger).Log("msg", "Error creating the exporter", "err", err)
+		logger.Error("msg", "Error creating the exporter", "err", err)
 		os.Exit(1)
 	}
 
@@ -107,7 +106,7 @@ func main() {
 
 	srv := &http.Server{}
 	if err := web.ListenAndServe(srv, webConfig, logger); err != nil {
-		level.Error(logger).Log("msg", "Error starting HTTP server", "err", err)
+		logger.Error("msg", "Error starting HTTP server", "err", err)
 		os.Exit(1)
 	}
 }

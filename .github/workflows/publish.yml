@@ -24,6 +24,7 @@ jobs:
           name: build
           path: .build
           if-no-files-found: error
+          include-hidden-files: true
       - name: Test binary
         run: .build/linux-amd64/twitch_exporter --help
 

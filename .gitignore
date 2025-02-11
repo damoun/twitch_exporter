@@ -5,6 +5,7 @@
 *.so
 *.dylib
 twitch_exporter
+__debug_*
 
 # ignore helm chart configuration if local
 values.yaml
@@ -21,3 +22,7 @@ helmfile.yaml
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Ignore config files
+twitch_exporter.yml*
+*.twitch_exporter.yml*

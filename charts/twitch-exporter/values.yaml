@@ -10,7 +10,7 @@ twitch:
 image:
   repository: damoun/twitch-exporter
   pullPolicy: Always
-  tag: "latest"
+  tag: "latest@sha256:733ab88ecec8b0fdbf24e80af2a16e434d5d3c0d0cbe65577d7ee38c07c43ee0"
 
 serviceAccount:
   create: true

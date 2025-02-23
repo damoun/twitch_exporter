@@ -8,10 +8,12 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	kingpin "github.com/alecthomas/kingpin/v2"
 	"github.com/damoun/twitch_exporter/collector"
-	"github.com/nicklaw5/helix/v2"
+	"github.com/damoun/twitch_exporter/config"
 	"github.com/prometheus/client_golang/prometheus"
 	versioncollector "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -23,15 +25,11 @@ import (
 )
 
 var (
-	metricsPath = kingpin.Flag("web.telemetry-path",
-		"Path under which to expose metrics.").
-		Default("/metrics").String()
-	twitchClientID = kingpin.Flag("twitch.client-id",
-		"Client ID for the Twitch Helix API.").Required().String()
-	twitchChannel = Channels(kingpin.Flag("twitch.channel",
-		"Name of a Twitch Channel to request metrics."))
-	twitchAccessToken = kingpin.Flag("twitch.access-token",
-		"Access Token for the Twitch Helix API.").Required().String()
+	r  = prometheus.NewRegistry()
+	sc = config.NewSafeConfig(r)
+
+	configFile  = kingpin.Flag("config.file", "Twitch exporter configuration file.").Default("twitch_exporter.yml").String()
+	metricsPath = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
 )
 
 type promHTTPLogger struct {
@@ -39,14 +37,7 @@ type promHTTPLogger struct {
 }
 
 func (l promHTTPLogger) Println(v ...interface{}) {
-	l.logger.Error("msg", fmt.Sprint(v...))
-}
-
-// Channels creates a collection of Channels from a kingpin command line argument.
-func Channels(s kingpin.Settings) (target *collector.ChannelNames) {
-	target = &collector.ChannelNames{}
-	s.SetValue(target)
-	return target
+	slog.Info(fmt.Sprint(v...))
 }
 
 func init() {
@@ -62,27 +53,66 @@ func main() {
 	kingpin.Parse()
 
 	logger := promslog.New(promslogConfig)
-	logger.Info("msg", "Starting twitch_exporter", "version", version.Info())
-	logger.Info("build_context", version.BuildContext())
 
-	client, err := helix.NewClient(&helix.Options{
-		ClientID:        *twitchClientID,
-		UserAccessToken: *twitchAccessToken,
-	})
+	logger.Info("Starting twitch_exporter", "version", version.Info())
+	logger.Info("build_context", "context", version.BuildContext())
 
-	if err != nil {
-		logger.Error("msg", "could not initialise twitch client", "err", err)
-		return
-	}
-
-	exporter, err := collector.NewExporter(logger, client, *twitchChannel)
-	if err != nil {
-		logger.Error("msg", "Error creating the exporter", "err", err)
+	if err := sc.ReloadConfig(*configFile, logger); err != nil {
+		logger.Error("Error loading config", "err", err)
 		os.Exit(1)
 	}
 
-	r := prometheus.NewRegistry()
+	exporter, err := collector.NewExporter(logger, sc)
+	if err != nil {
+		logger.Error("Error creating the exporter", "err", err.Error())
+		os.Exit(1)
+	}
+
 	r.MustRegister(exporter)
+
+	hup := make(chan os.Signal, 1)
+	reloadCh := make(chan chan error)
+	signal.Notify(hup, syscall.SIGHUP)
+	go func() {
+		for {
+			select {
+			case <-hup:
+				if err := sc.ReloadConfig(*configFile, logger); err != nil {
+					logger.Error("Error reloading config", "err", err)
+					continue
+				}
+
+				exporter.Reload()
+
+				logger.Info("Reloaded config file")
+			case rc := <-reloadCh:
+				if err := sc.ReloadConfig(*configFile, logger); err != nil {
+					logger.Error("Error reloading config", "err", err)
+					rc <- err
+				} else {
+					exporter.Reload()
+
+					logger.Info("Reloaded config file")
+					rc <- nil
+				}
+			}
+		}
+	}()
+
+	http.HandleFunc("/-/reload",
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "POST" {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				fmt.Fprintf(w, "This endpoint requires a POST request.\n")
+				return
+			}
+
+			rc := make(chan error)
+			reloadCh <- rc
+			if err := <-rc; err != nil {
+				http.Error(w, fmt.Sprintf("failed to reload config: %s", err), http.StatusInternalServerError)
+			}
+		})
 
 	http.Handle(*metricsPath, promhttp.HandlerFor(r, promhttp.HandlerOpts{
 		ErrorLog:      promHTTPLogger{logger: logger},
@@ -105,8 +135,24 @@ func main() {
 	})
 
 	srv := &http.Server{}
-	if err := web.ListenAndServe(srv, webConfig, logger); err != nil {
-		logger.Error("msg", "Error starting HTTP server", "err", err)
-		os.Exit(1)
+	srvc := make(chan struct{})
+	term := make(chan os.Signal, 1)
+	signal.Notify(term, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		if err := web.ListenAndServe(srv, webConfig, logger); err != nil {
+			slog.Error("Error starting HTTP server", "err", err.Error())
+			os.Exit(1)
+		}
+	}()
+
+	for {
+		select {
+		case <-term:
+			logger.Info("Received SIGTERM")
+			return
+		case <-srvc:
+			return
+		}
 	}
 }

@@ -1,0 +1,16 @@
+twitch:
+  # twitch application client id
+  client-id:
+
+  # client-secret is only required for the scripts/getAppAccessTokens.sh
+  # file, which is optionally how you can ensure your tokens are kept
+  # fresh.
+  client-secret:
+
+  # either an app access token, which can easily be generated using
+  # scripts/getAppAccessTokens.sh - or you can create one with the
+  # oauth flow outside the application.
+  access-token:
+
+  # array of channels to export information about
+  channels: []

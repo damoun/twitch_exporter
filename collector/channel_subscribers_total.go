@@ -4,6 +4,8 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/damoun/twitch_exporter/config"
+	"github.com/damoun/twitch_exporter/twitch"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -16,7 +18,7 @@ const (
 type ChannelSubscriberTotalCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
-	channelNames ChannelNames
+	channelNames *config.ChannelNames
 
 	channelSubscribersTotal typedDesc
 }
@@ -25,11 +27,11 @@ func init() {
 	registerCollector("channel_subscribers_total", defaultDisabled, NewChannelSubscriberTotalCollector)
 }
 
-func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error) {
+func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Client, cfg *config.Config) (Collector, error) {
 	c := ChannelSubscriberTotalCollector{
 		logger:       logger,
 		client:       client,
-		channelNames: channelNames,
+		channelNames: cfg.Twitch.Channels,
 
 		channelSubscribersTotal: typedDesc{prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "channel_subscribers_total"),
@@ -42,38 +44,29 @@ func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Clien
 }
 
 func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) error {
-	if len(c.channelNames) == 0 {
+	if len(*c.channelNames) == 0 {
 		return ErrNoData
 	}
 
-	usersResp, err := c.client.GetUsers(&helix.UsersParams{
-		Logins: c.channelNames,
-	})
-
+	users, err := twitch.GetUsersByUsername(c.logger, c.client, *c.channelNames)
 	if err != nil {
-		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", err)
+		err = errors.Join(errors.New("failed to get users by username for channel_subscribers_total"), err)
 		return err
 	}
 
-	if usersResp.StatusCode != 200 {
-		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
-		return errors.New(usersResp.ErrorMessage)
-	}
-
-	// todo: we can avoid this with a shared cache of username to userID that has a short TTL
-	for _, user := range usersResp.Data.Users {
+	for _, user := range *users {
 		subscribtionsResp, err := c.client.GetSubscriptions(&helix.SubscriptionsParams{
 			BroadcasterID: user.ID,
 		})
 
 		if err != nil {
-			c.logger.Error("msg", "Failed to collect subscribers stats from Twitch helix API", "err", err)
-			return err
+			c.logger.Error("Failed to collect subscribers stats from Twitch helix API", "err", err.Error())
+			return errors.Join(errors.New("failed to collect subscribers stats from Twitch helix API"), err)
 		}
 
 		if subscribtionsResp.StatusCode != 200 {
-			c.logger.Error("msg", "Failed to collect subscirbers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
-			return errors.New(subscribtionsResp.ErrorMessage)
+			c.logger.Error("Failed to collect subscirbers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
+			return errors.Join(errors.New("failed to collect subscirbers stats from Twitch helix API"), errors.New(subscribtionsResp.ErrorMessage))
 		}
 
 		subCounter := make(map[string]int)

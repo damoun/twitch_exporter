@@ -2,10 +2,14 @@ module github.com/damoun/twitch_exporter
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
+	github.com/eko/gocache/lib/v4 v4.2.0
+	github.com/eko/gocache/store/go_cache/v4 v4.2.2
 	github.com/nicklaw5/helix/v2 v2.31.0
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/common v0.62.0
 	github.com/prometheus/exporter-toolkit v0.13.2
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -14,6 +18,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/mdlayher/socket v0.4.1 // indirect
@@ -23,7 +28,9 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
+	go.uber.org/mock v0.4.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect

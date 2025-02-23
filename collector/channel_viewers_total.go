@@ -1,8 +1,10 @@
 package collector
 
 import (
+	"errors"
 	"log/slog"
 
+	"github.com/damoun/twitch_exporter/config"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -10,7 +12,7 @@ import (
 type ChannelViewersTotalCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
-	channelNames ChannelNames
+	channelNames *config.ChannelNames
 
 	channelViewersTotal typedDesc
 }
@@ -19,11 +21,11 @@ func init() {
 	registerCollector("channel_viewers_total", defaultEnabled, NewChannelViewersTotalCollector)
 }
 
-func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error) {
+func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, cfg *config.Config) (Collector, error) {
 	c := ChannelViewersTotalCollector{
 		logger:       logger,
 		client:       client,
-		channelNames: channelNames,
+		channelNames: cfg.Twitch.Channels,
 
 		channelViewersTotal: typedDesc{prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "channel_viewers_total"),
@@ -36,18 +38,18 @@ func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, 
 }
 
 func (c ChannelViewersTotalCollector) Update(ch chan<- prometheus.Metric) error {
-	if len(c.channelNames) == 0 {
+	if len(*c.channelNames) == 0 {
 		return ErrNoData
 	}
 
 	streamsResp, err := c.client.GetStreams(&helix.StreamsParams{
-		UserLogins: c.channelNames,
-		First:      len(c.channelNames),
+		UserLogins: *c.channelNames,
+		First:      len(*c.channelNames),
 	})
 
 	if err != nil {
-		c.logger.Error("msg", "could not get streams", "err", err)
-		return err
+		c.logger.Error("could not get streams", "err", err.Error())
+		return errors.Join(errors.New("could not get streams"), err)
 	}
 
 	for _, s := range streamsResp.Data.Streams {

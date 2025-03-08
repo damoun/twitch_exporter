@@ -25,16 +25,32 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+
           args: [
-            "--twitch.client-id=$(TWITCH_CLIENT_ID)",
+            {{- if .Values.twitch.accessToken }}
+            # access token is provided as a secret
             "--twitch.access-token=$(TWITCH_ACCESS_TOKEN)",
-            {{- with $.Values.twitch.channels }}{{ range $.Values.twitch.channels }}
-            "--twitch.channel={{ . }}",
-            {{- end }}{{- end }}
+            {{ end -}}
+
+            {{- if .Values.twitch.refreshToken }}
+            # refresh token is provided as a secret
+            "--twitch.refresh-token=$(TWITCH_REFRESH_TOKEN)",
+            {{ end -}}
+
+            {{- if .Values.twitch.clientSecret }}
+            # client secret is provided as a secret
+            "--twitch.client-secret=$(TWITCH_CLIENT_SECRET)",
+            {{ end -}}
+
+            # config is provided as a config map
+            "--config=/var/secrets/config.yml"
           ]
           envFrom:
             - secretRef:
                 name: twitch-exporter-env
+          volumeMounts:
+            - name: twitch-exporter-config
+              mountPath: /var/secrets
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -47,3 +63,7 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+      volumes:
+        - name: twitch-exporter-config
+          configMap:
+            name: twitch-exporter-config

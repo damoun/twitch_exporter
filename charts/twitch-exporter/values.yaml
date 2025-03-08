@@ -1,6 +1,21 @@
 twitch:
+  # client-id is required at all times
   clientId: ""
+
+  # client secret is preferred for use without private data, as it uses no oauth
+  # flow to grant access to the API. Endpoints such as sub counts are not with
+  # this method.
+  #
+  # if both client-secret and access-token are provided, client-secret will be
+  # used.
+  clientSecret: ""
+
+  # access-token & refresh-token are required for use with private data, such
+  # as sub counts.
   accessToken: ""
+  refreshToken: ""
+
+  # channels is a list of channels to export metrics for.
   channels:
     - jordofthenorth
     - timthetatman
@@ -24,3 +39,7 @@ ingress:
   enabled: false
 
 resources: {}
+
+podLabels: {}
+
+podAnnotations: {}

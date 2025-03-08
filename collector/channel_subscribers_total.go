@@ -51,12 +51,12 @@ func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 	})
 
 	if err != nil {
-		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", err)
+		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", err)
 		return err
 	}
 
 	if usersResp.StatusCode != 200 {
-		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
+		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
 		return errors.New(usersResp.ErrorMessage)
 	}
 
@@ -67,12 +67,12 @@ func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 		})
 
 		if err != nil {
-			c.logger.Error("msg", "Failed to collect subscribers stats from Twitch helix API", "err", err)
+			c.logger.Error("Failed to collect subscribers stats from Twitch helix API", "err", err)
 			return err
 		}
 
 		if subscribtionsResp.StatusCode != 200 {
-			c.logger.Error("msg", "Failed to collect subscirbers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
+			c.logger.Error("Failed to collect subscirbers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
 			return errors.New(subscribtionsResp.ErrorMessage)
 		}
 

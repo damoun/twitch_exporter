@@ -151,7 +151,7 @@ func newClientWithSecret(logger *slog.Logger) (*helix.Client, error) {
 	})
 
 	if err != nil {
-		logger.Error("msg", "could not initialise twitch client", "err", err)
+		logger.Error("could not initialise twitch client", "err", err)
 		return nil, err
 	}
 

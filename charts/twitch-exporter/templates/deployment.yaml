@@ -21,6 +21,11 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
+      {{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
+      {{- end }}
+
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -30,27 +35,34 @@ spec:
             {{- if .Values.twitch.accessToken }}
             # access token is provided as a secret
             "--twitch.access-token=$(TWITCH_ACCESS_TOKEN)",
-            {{ end -}}
+            {{- end -}}
 
             {{- if .Values.twitch.refreshToken }}
             # refresh token is provided as a secret
             "--twitch.refresh-token=$(TWITCH_REFRESH_TOKEN)",
-            {{ end -}}
+            {{- end -}}
+
+            {{- if .Values.twitch.clientId }}
+            # client id is provided as a secret
+            "--twitch.client-id=$(TWITCH_CLIENT_ID)",
+            {{- end -}}
 
             {{- if .Values.twitch.clientSecret }}
             # client secret is provided as a secret
             "--twitch.client-secret=$(TWITCH_CLIENT_SECRET)",
-            {{ end -}}
+            {{- end -}}
 
-            # config is provided as a config map
-            "--config=/var/secrets/config.yml"
+            {{- range .Values.twitch.channels }}
+            "--twitch.channel={{ . }}",
+            {{- end }}
           ]
           envFrom:
             - secretRef:
                 name: twitch-exporter-env
+          {{- if .Values.volumeMounts }}
           volumeMounts:
-            - name: twitch-exporter-config
-              mountPath: /var/secrets
+            {{- toYaml .Values.volumeMounts | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -63,7 +75,7 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      volumes:
-        - name: twitch-exporter-config
-          configMap:
-            name: twitch-exporter-config
+        {{- if .Values.volumes }}
+        volumes:
+          {{- toYaml .Values.volumes | nindent 12 }}
+        {{- end }}

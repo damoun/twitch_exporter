@@ -46,7 +46,7 @@ func (c ChannelViewersTotalCollector) Update(ch chan<- prometheus.Metric) error 
 	})
 
 	if err != nil {
-		c.logger.Error("msg", "could not get streams", "err", err)
+		c.logger.Error("could not get streams", "err", err)
 		return err
 	}
 

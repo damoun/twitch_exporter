@@ -27,6 +27,12 @@ image:
   pullPolicy: Always
   tag: "latest"
 
+  # pullSecrets is a list of secrets to use for pulling the image.
+  pullSecrets: []
+  # pullSecrets:
+  #   - name: dockerhub
+  #     namespace: default
+
 serviceAccount:
   create: true
   automount: true
@@ -43,3 +49,6 @@ resources: {}
 podLabels: {}
 
 podAnnotations: {}
+
+volumes: []
+volumeMounts: []

@@ -130,7 +130,7 @@ func NewExporter(logger *slog.Logger, client *helix.Client, channelNames Channel
 	}
 
 	for k, _ := range collectors {
-		logger.Info("msg", "enabled collector", "collector", k)
+		logger.Info("enabled collector", "collector", k)
 	}
 
 	return &Exporter{

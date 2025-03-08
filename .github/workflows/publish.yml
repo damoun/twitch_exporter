@@ -7,6 +7,7 @@ on:
   release:
     types:
       - created
+  workflow_dispatch:
 
 jobs:
   build:
@@ -46,12 +47,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - run: make docker DOCKER_IMAGE_TAG="${{ github.ref_name }}"
-      - run: make docker-publish DOCKER_IMAGE_TAG="${{ github.ref_name }}"
-      - run: make docker-manifest DOCKER_IMAGE_TAG="${{ github.ref_name }}"
+      - run: make docker DOCKER_REPO="${{ secrets.DOCKER_REPO }}" DOCKER_IMAGE_NAME="${{ secrets.DOCKER_IMAGE_NAME }}" DOCKER_IMAGE_TAG="${{ github.ref_name }}"
+      - run: make docker-publish DOCKER_REPO="${{ secrets.DOCKER_REPO }}" DOCKER_IMAGE_NAME="${{ secrets.DOCKER_IMAGE_NAME }}" DOCKER_IMAGE_TAG="${{ github.ref_name }}"
+      - run: make docker-manifest DOCKER_REPO="${{ secrets.DOCKER_REPO }}" DOCKER_IMAGE_NAME="${{ secrets.DOCKER_IMAGE_NAME }}" DOCKER_IMAGE_TAG="${{ github.ref_name }}"
       - if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          make docker-tag-latest DOCKER_IMAGE_TAG="${{ github.ref_name }}"
-          make docker-publish DOCKER_IMAGE_TAG="latest"
-          make docker-manifest DOCKER_IMAGE_TAG="latest"
-      - run: docker run docker.io/damoun/twitch-exporter-linux-amd64:main --help
+          make docker-tag-latest DOCKER_REPO="${{ secrets.DOCKER_REPO }}" DOCKER_IMAGE_NAME="${{ secrets.DOCKER_IMAGE_NAME }}" DOCKER_IMAGE_TAG="${{ github.ref_name }}"
+          make docker-publish DOCKER_REPO="${{ secrets.DOCKER_REPO }}" DOCKER_IMAGE_NAME="${{ secrets.DOCKER_IMAGE_NAME }}" DOCKER_IMAGE_TAG="latest"
+          make docker-manifest DOCKER_REPO="${{ secrets.DOCKER_REPO }}" DOCKER_IMAGE_NAME="${{ secrets.DOCKER_IMAGE_NAME }}" DOCKER_IMAGE_TAG="latest"
+      - run: docker run docker.io/${{ secrets.DOCKER_REPO }}/${{ secrets.DOCKER_IMAGE_NAME }}:${{ github.ref_name }} --help

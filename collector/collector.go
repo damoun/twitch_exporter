@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/kingpin/v2"
+	"github.com/damoun/twitch_exporter/internal/eventsub"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -38,14 +39,14 @@ const (
 )
 
 var (
-	factories              = make(map[string]func(logger *slog.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error))
+	factories              = make(map[string]func(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error))
 	initiatedCollectorsMtx = sync.Mutex{}
 	initiatedCollectors    = make(map[string]Collector)
 	collectorState         = make(map[string]*bool)
 	forcedCollectors       = map[string]bool{} // collectors which have been explicitly enabled or disabled
 )
 
-func registerCollector(collector string, isDefaultEnabled bool, factory func(logger *slog.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error)) {
+func registerCollector(collector string, isDefaultEnabled bool, factory func(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error)) {
 	var helpDefaultState string
 	if isDefaultEnabled {
 		helpDefaultState = "enabled"
@@ -96,7 +97,7 @@ func collectorFlagAction(collector string) func(ctx *kingpin.ParseContext) error
 	}
 }
 
-func NewExporter(logger *slog.Logger, client *helix.Client, channelNames ChannelNames, filters ...string) (*Exporter, error) {
+func NewExporter(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames, filters ...string) (*Exporter, error) {
 	f := make(map[string]bool)
 	for _, filter := range filters {
 		enabled, exist := collectorState[filter]
@@ -120,7 +121,7 @@ func NewExporter(logger *slog.Logger, client *helix.Client, channelNames Channel
 		if collector, ok := initiatedCollectors[key]; ok {
 			collectors[key] = collector
 		} else {
-			collector, err := factories[key](logger, client, channelNames)
+			collector, err := factories[key](logger, client, eventsubClient, channelNames)
 			if err != nil {
 				return nil, err
 			}
@@ -130,7 +131,7 @@ func NewExporter(logger *slog.Logger, client *helix.Client, channelNames Channel
 	}
 
 	for k, _ := range collectors {
-		logger.Info("msg", "enabled collector", "collector", k)
+		logger.Info("enabled collector", "collector", k)
 	}
 
 	return &Exporter{

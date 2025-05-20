@@ -3,6 +3,7 @@ package collector
 import (
 	"log/slog"
 
+	"github.com/damoun/twitch_exporter/internal/eventsub"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -19,7 +20,7 @@ func init() {
 	registerCollector("channel_viewers_total", defaultEnabled, NewChannelViewersTotalCollector)
 }
 
-func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error) {
+func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error) {
 	c := ChannelViewersTotalCollector{
 		logger:       logger,
 		client:       client,
@@ -46,7 +47,7 @@ func (c ChannelViewersTotalCollector) Update(ch chan<- prometheus.Metric) error 
 	})
 
 	if err != nil {
-		c.logger.Error("msg", "could not get streams", "err", err)
+		c.logger.Error("could not get streams", "err", err)
 		return err
 	}
 

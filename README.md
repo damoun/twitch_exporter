@@ -22,6 +22,7 @@ make
 | twitch_channel_views_total | Is the total number of views on a twitch channel. | username |
 | twitch_channel_followers_total | Is the total number of follower on a twitch channel. | username |
 | twitch_channel_subscribers_total | Is the total number of subscriber on a twitch channel. | username, tier, gifted |
+| twitch_channel_chat_messages_total | Is the total number of chat messages from a user within a channel. | username, chatter_username |
 
 ### Flags
 
@@ -38,10 +39,56 @@ make
 * __`version`:__ Show application version.
 * __`web.listen-address`:__ Address to listen on for web interface and telemetry.
 * __`web.telemetry-path`:__ Path under which to expose metrics.
+* __`eventsub.enabled`:__ Enable eventsub endpoint (default: false).
+* __`eventsub.webhook-url`:__ The url your collector will be expected to be hosted at, eg: http://example.svc/eventsub (Must end with `/eventsub`).
+* __`eventsub.secret`:__ Secure 1-100 character secret for your eventsub validation
 * __`--[no-]collector.channel_followers_total`:__ Enable the channel_followers_total collector (default: enabled).
-* __`--[no-]collector.channel_subscribers_total`:__ Enable the channel_subscribers_total collector (default: disabled).
+* __`--[no-]collector.channel_subscribers_total`:__ Enable the channel_subscribers_total collector (default: disabled*).
 * __`--[no-]collector.channel_up`:__ Enable the channel_up collector (default: enabled).
 * __`--[no-]collector.channel_viewers_total`:__ Enable the channel_viewers_total collector (default: enabled).
+* __`--[no-]collector.channel_chat_messages_total`:__ Enable the channel_chat_messages_total (default: disabled**).
+
+```
+* Disabled due to the requirement of a user access token, which must be acquired outside of the collector
+** Disabled due to event-sub being disabled by default
+```
+
+## Event-sub
+
+Event-sub metrics are disabled by default due to requiring a public endpoint to be exposed and more permissions and setup.
+Due to the likeliness that you do not want to expose the service publicly and go through too much effort, it is disabled by
+default.
+
+If you wish to use eventsub based metrics then you should deploy an instance of the exporter just for the user that needs
+the eventsub metrics, such as your own channel, and just collect the privileged metrics using that exporter.
+
+> Todo: Instead of disabling all other collectors, functionality to set collectors should be implemented
+
+### Setting up eventsub metrics
+
+You can read more about the process [here](https://dev.twitch.tv/docs/chat/authenticating/)
+
+1. Install the twitch-cli
+1. Ensure your twitch app has localhost:3000 added as a redirect uri
+1. `twitch token -u -s 'channel:bot user:chat:read user:bot channel:read:subscriptions'` (At this point, since you are getting a user token, you may as well get the subscriptions metric too)
+1. Start the collector with `client-id`, `client-secret`, `access-token`, and `refresh-token` defined
+
+```
+go run twitch_exporter.go \
+  --twitch.client-id xxx \
+  --twitch.client-secret xxx \
+  --twitch.access-token xxx \
+  --twitch.refresh-token xxx \
+  --twitch.channel surdaft \
+  --eventsub.enabled \
+  --eventsub.webhook-url 'https://xxx/eventsub' \
+  --eventsub.webhook-secret xxxx \
+  --collector.channel_chat_messages_total \
+  --collector.channel_subscribers_total \
+  --no-collector.channel_followers_total \
+  --no-collector.channel_up \
+  --no-collector.channel_viewers_total
+```
 
 ## Useful Queries
 

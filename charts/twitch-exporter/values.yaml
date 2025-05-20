@@ -1,16 +1,42 @@
 twitch:
+  # client-id is required at all times
   clientId: ""
+
+  # client secret is preferred for use without private data, as it uses no oauth
+  # flow to grant access to the API. Endpoints such as sub counts are not with
+  # this method.
+  #
+  # if both client-secret and access-token are provided, client-secret will be
+  # used.
+  clientSecret: ""
+
+  # access-token & refresh-token are required for use with private data, such
+  # as sub counts.
   accessToken: ""
+  refreshToken: ""
+
+  # channels is a list of channels to export metrics for.
   channels:
     - jordofthenorth
     - timthetatman
     - dam0un
     - surdaft
 
+  # eventsub is disabled due to the need to expose the service
+  eventsub:
+    enabled: false
+    webhookURL: ""
+    webhookSecret: ""
+
+  # additionalParameters is a list of additional parameters to pass to the
+  # exporter, such as --collector.channel_chat_messages_total
+  additionalParameters: []
+
 image:
   repository: damoun/twitch-exporter
   pullPolicy: Always
   tag: "latest"
+  pullSecrets: []
 
 serviceAccount:
   create: true
@@ -20,7 +46,13 @@ service:
   type: ClusterIP
   port: 9184
 
+# ingress would be required if using eventsub
 ingress:
   enabled: false
+  annotations: {}
 
 resources: {}
+
+podLabels: {}
+
+podAnnotations: {}

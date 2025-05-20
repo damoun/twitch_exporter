@@ -13,7 +13,7 @@ spec:
   rules:
     - http:
         paths:
-          - path: /
+          - path: /eventsub
             pathType: Prefix
             backend:
               service:

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/damoun/twitch_exporter/internal/eventsub"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -20,7 +21,7 @@ func init() {
 	registerCollector("channel_followers_total", defaultEnabled, NewChannelFollowersTotalCollector)
 }
 
-func NewChannelFollowersTotalCollector(logger *slog.Logger, client *helix.Client, channelNames ChannelNames) (Collector, error) {
+func NewChannelFollowersTotalCollector(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error) {
 	c := channelFollowersTotalCollector{
 		logger:       logger,
 		client:       client,
@@ -46,12 +47,12 @@ func (c channelFollowersTotalCollector) Update(ch chan<- prometheus.Metric) erro
 	})
 
 	if err != nil {
-		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", err)
+		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", err)
 		return err
 	}
 
 	if usersResp.StatusCode != 200 {
-		c.logger.Error("msg", "Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
+		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
 		return errors.New(usersResp.ErrorMessage)
 	}
 
@@ -62,12 +63,12 @@ func (c channelFollowersTotalCollector) Update(ch chan<- prometheus.Metric) erro
 		})
 
 		if err != nil {
-			c.logger.Error("msg", "Failed to collect follower stats from Twitch helix API", "err", err)
+			c.logger.Error("Failed to collect follower stats from Twitch helix API", "err", err)
 			return err
 		}
 
 		if usersFollowsResp.StatusCode != 200 {
-			c.logger.Error("msg", "Failed to collect follower stats from Twitch helix API", "err", usersFollowsResp.ErrorMessage)
+			c.logger.Error("Failed to collect follower stats from Twitch helix API", "err", usersFollowsResp.ErrorMessage)
 			return errors.New(usersFollowsResp.ErrorMessage)
 		}
 

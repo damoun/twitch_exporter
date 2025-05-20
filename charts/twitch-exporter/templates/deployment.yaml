@@ -21,24 +21,54 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
+      {{ if .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.image.pullSecrets | nindent 12 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+
           args: [
-            "--twitch.client-id=$(TWITCH_CLIENT_ID)",
+            {{- if .Values.twitch.accessToken }}
+            # access token is provided as a secret
             "--twitch.access-token=$(TWITCH_ACCESS_TOKEN)",
-            {{- with $.Values.twitch.channels }}{{ range $.Values.twitch.channels }}
+            {{ end -}}
+
+            {{- if .Values.twitch.refreshToken }}
+            # refresh token is provided as a secret
+            "--twitch.refresh-token=$(TWITCH_REFRESH_TOKEN)",
+            {{ end -}}
+
+            {{- if .Values.twitch.clientId }}
+            "--twitch.client-id=$(TWITCH_CLIENT_ID)",
+            {{ end -}}
+
+            {{- if .Values.twitch.clientSecret }}
+            # client secret is provided as a secret
+            "--twitch.client-secret=$(TWITCH_CLIENT_SECRET)",
+            {{ end -}}
+
+            {{- range .Values.twitch.channels }}
             "--twitch.channel={{ . }}",
-            {{- end }}{{- end }}
+            {{ end -}}
+
+            {{- if .Values.twitch.eventsub.enabled }}
+            "--eventsub.enabled",
+            "--eventsub.webhook-url=$(EVENTSUB_WEBHOOK_URL)",
+            "--eventsub.webhook-secret=$(EVENTSUB_WEBHOOK_SECRET)",
+            {{ end -}}
+
+            {{- range .Values.twitch.additionalParameters }}
+            "{{ . }}",
+            {{ end -}}
           ]
           envFrom:
             - secretRef:
                 name: twitch-exporter-env
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
+            - containerPort: {{ .Values.service.port }}
           livenessProbe:
             httpGet:
               path: /

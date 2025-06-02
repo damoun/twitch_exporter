@@ -41,7 +41,7 @@ make
 * __`web.telemetry-path`:__ Path under which to expose metrics.
 * __`eventsub.enabled`:__ Enable eventsub endpoint (default: false).
 * __`eventsub.webhook-url`:__ The url your collector will be expected to be hosted at, eg: http://example.svc/eventsub (Must end with `/eventsub`).
-* __`eventsub.secret`:__ Secure 1-100 character secret for your eventsub validation
+* __`eventsub.webhook-secret`:__ Secure 1-100 character secret for your eventsub validation
 * __`--[no-]collector.channel_followers_total`:__ Enable the channel_followers_total collector (default: enabled).
 * __`--[no-]collector.channel_subscribers_total`:__ Enable the channel_subscribers_total collector (default: disabled*).
 * __`--[no-]collector.channel_up`:__ Enable the channel_up collector (default: enabled).

@@ -43,9 +43,9 @@ var (
 	eventSubEnabled = kingpin.Flag("eventsub.enabled",
 		"Enable the Twitch Eventsub API.").Default("false").Bool()
 	eventSubWebhookURL = kingpin.Flag("eventsub.webhook-url",
-		"Webhook URL for the Twitch Eventsub API.").Default("").String()
+		"The url your collector will be expected to be hosted at, eg: http://example.svc/eventsub (Must end with `/eventsub`).").Default("").String()
 	eventSubWebhookSecret = kingpin.Flag("eventsub.webhook-secret",
-		"Webhook Secret for the Twitch Eventsub API.").Default("").String()
+		"Secure 1-100 character secret for your eventsub validation.").Default("").String()
 
 	// collector configs
 	// the twitch channel is a global config for all collectors, and is
@@ -197,6 +197,7 @@ func main() {
 }
 
 func refreshAppAccessToken(logger *slog.Logger, client *helix.Client) {
+	logger.Info("Refreshing app access token")
 	appAccessToken, err := client.RequestAppAccessToken([]string{})
 	if err != nil {
 		logger.Error("Error getting app access token", "err", err)
@@ -212,6 +213,7 @@ func refreshAppAccessToken(logger *slog.Logger, client *helix.Client) {
 }
 
 func refreshUserAccessToken(logger *slog.Logger, client *helix.Client) {
+	logger.Info("Refreshing user access token")
 	userAccessToken, err := client.RefreshUserAccessToken(client.GetRefreshToken())
 	if err != nil {
 		logger.Error("Error getting user access token", "err", err)
@@ -241,17 +243,12 @@ func newClientWithSecret(logger *slog.Logger) (*helix.Client, error) {
 
 	refreshAppAccessToken(logger, client)
 
-	// now set a ticker for ensuring the access token is refreshed, app access
-	// tokens do not return a refresh token, so we need to refresh them every
-	// 24 hours.
-	ticker := time.NewTicker(24 * time.Hour)
-	defer ticker.Stop()
-
-	go func(logger *slog.Logger, client *helix.Client) {
-		for range ticker.C {
+	refreshTicker := time.NewTicker(24 * time.Hour)
+	go func(logger *slog.Logger, refreshTicker *time.Ticker, client *helix.Client) {
+		for range refreshTicker.C {
 			refreshAppAccessToken(logger, client)
 		}
-	}(logger, client)
+	}(logger, refreshTicker, client)
 
 	return client, nil
 }
@@ -279,17 +276,12 @@ func newClientWithUserAccessToken(logger *slog.Logger) (*helix.Client, error) {
 	// are outdated
 	refreshUserAccessToken(logger, client)
 
-	// now set a ticker for ensuring the access token is refreshed, app access
-	// tokens do not return a refresh token, so we need to refresh them every
-	// 24 hours.
-	ticker := time.NewTicker(24 * time.Hour)
-	defer ticker.Stop()
-
-	go func(logger *slog.Logger, client *helix.Client) {
-		for range ticker.C {
+	refreshTicker := time.NewTicker(24 * time.Hour)
+	go func(logger *slog.Logger, refreshTicker *time.Ticker, client *helix.Client) {
+		for range refreshTicker.C {
 			refreshUserAccessToken(logger, client)
 		}
-	}(logger, client)
+	}(logger, refreshTicker, client)
 
 	return client, nil
 }

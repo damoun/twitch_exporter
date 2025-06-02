@@ -73,7 +73,7 @@ func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 		}
 
 		if subscribtionsResp.StatusCode != 200 {
-			c.logger.Error("Failed to collect subscirbers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
+			c.logger.Error("Failed to collect subscribers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
 			return errors.New(subscribtionsResp.ErrorMessage)
 		}
 

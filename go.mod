@@ -3,7 +3,7 @@ module github.com/damoun/twitch_exporter
 require (
 	github.com/LinneB/twitchwh v0.1.0
 	github.com/alecthomas/kingpin/v2 v2.4.0
-	github.com/nicklaw5/helix/v2 v2.31.0
+	github.com/nicklaw5/helix/v2 v2.31.1
 	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/common v0.62.0
 	github.com/prometheus/exporter-toolkit v0.13.2

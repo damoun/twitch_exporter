@@ -271,6 +271,7 @@ func refreshUserAccessToken(logger *slog.Logger, client *helix.Client) {
 	}
 
 	client.SetUserAccessToken(userAccessToken.Data.AccessToken)
+	client.SetRefreshToken(userAccessToken.Data.RefreshToken)
 }
 
 // newClientWithSecret creates a new Twitch client with the use of an app access

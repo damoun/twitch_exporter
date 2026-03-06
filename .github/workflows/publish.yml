@@ -8,6 +8,8 @@ on:
     types:
       - created
 
+permissions: read-all
+
 jobs:
   build:
     runs-on: ubuntu-latest

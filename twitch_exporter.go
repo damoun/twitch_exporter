@@ -75,29 +75,17 @@ func Channels(s kingpin.Settings) (target *collector.ChannelNames) {
 	return target
 }
 
-// readTokenFromFile reads a token from a file and returns it trimmed.
-func readTokenFromFile(path string) (string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
+// getTokenValue returns a token from either a file or direct value.
+// If filePath is non-empty, reads from file; otherwise returns directValue.
+func getTokenValue(filePath, directValue string) (string, error) {
+	if filePath != "" {
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			return "", err
+		}
+		return strings.TrimSpace(string(data)), nil
 	}
-	return strings.TrimSpace(string(data)), nil
-}
-
-// getAccessToken returns the access token from either the flag or file.
-func getAccessToken() (string, error) {
-	if *twitchAccessTokenFile != "" {
-		return readTokenFromFile(*twitchAccessTokenFile)
-	}
-	return *twitchAccessToken, nil
-}
-
-// getRefreshToken returns the refresh token from either the flag or file.
-func getRefreshToken() (string, error) {
-	if *twitchRefreshTokenFile != "" {
-		return readTokenFromFile(*twitchRefreshTokenFile)
-	}
-	return *twitchRefreshToken, nil
+	return directValue, nil
 }
 
 // hasUserTokenConfig returns true if user access token configuration is provided.
@@ -254,23 +242,20 @@ func refreshUserAccessToken(logger *slog.Logger, client *helix.Client) {
 
 	// If using file-based tokens, re-read them from files (allows external
 	// components/sidecars to update the tokens)
-	if *twitchAccessTokenFile != "" {
-		accessToken, err := readTokenFromFile(*twitchAccessTokenFile)
+	if *twitchAccessTokenFile != "" || *twitchRefreshTokenFile != "" {
+		accessToken, err := getTokenValue(*twitchAccessTokenFile, *twitchAccessToken)
 		if err != nil {
-			logger.Error("Error reading access token from file", "err", err)
+			logger.Error("Error reading access token", "err", err)
+			return
+		}
+		refreshToken, err := getTokenValue(*twitchRefreshTokenFile, *twitchRefreshToken)
+		if err != nil {
+			logger.Error("Error reading refresh token", "err", err)
 			return
 		}
 		client.SetUserAccessToken(accessToken)
+		client.SetRefreshToken(refreshToken)
 		logger.Info("User access token refreshed from file")
-
-		if *twitchRefreshTokenFile != "" {
-			refreshToken, err := readTokenFromFile(*twitchRefreshTokenFile)
-			if err != nil {
-				logger.Error("Error reading refresh token from file", "err", err)
-				return
-			}
-			client.SetRefreshToken(refreshToken)
-		}
 		return
 	}
 
@@ -316,13 +301,13 @@ func newClientWithSecret(logger *slog.Logger) (*helix.Client, error) {
 // newClientWithUserAccessToken creates a new Twitch client with a user access token.
 // this is required for private data, such as subscriber counts.
 func newClientWithUserAccessToken(logger *slog.Logger) (*helix.Client, error) {
-	accessToken, err := getAccessToken()
+	accessToken, err := getTokenValue(*twitchAccessTokenFile, *twitchAccessToken)
 	if err != nil {
 		logger.Error("Error reading access token", "err", err)
 		return nil, err
 	}
 
-	refreshToken, err := getRefreshToken()
+	refreshToken, err := getTokenValue(*twitchRefreshTokenFile, *twitchRefreshToken)
 	if err != nil {
 		logger.Error("Error reading refresh token", "err", err)
 		return nil, err

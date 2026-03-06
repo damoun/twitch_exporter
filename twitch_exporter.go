@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	kingpin "github.com/alecthomas/kingpin/v2"
@@ -40,6 +41,10 @@ var (
 		"Access Token for the Twitch Helix API.").String()
 	twitchRefreshToken = kingpin.Flag("twitch.refresh-token",
 		"Refresh Token for the Twitch Helix API.").String()
+	twitchAccessTokenFile = kingpin.Flag("twitch.access-token-file",
+		"File containing the Access Token for the Twitch Helix API.").String()
+	twitchRefreshTokenFile = kingpin.Flag("twitch.refresh-token-file",
+		"File containing the Refresh Token for the Twitch Helix API.").String()
 	eventSubEnabled = kingpin.Flag("eventsub.enabled",
 		"Enable the Twitch Eventsub API.").Default("false").Bool()
 	eventSubWebhookURL = kingpin.Flag("eventsub.webhook-url",
@@ -70,6 +75,26 @@ func Channels(s kingpin.Settings) (target *collector.ChannelNames) {
 	return target
 }
 
+// getTokenValue returns a token from either a file or direct value.
+// If filePath is non-empty, reads from file; otherwise returns directValue.
+func getTokenValue(filePath, directValue string) (string, error) {
+	if filePath != "" {
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			return "", err
+		}
+		return strings.TrimSpace(string(data)), nil
+	}
+	return directValue, nil
+}
+
+// hasUserTokenConfig returns true if user access token configuration is provided.
+func hasUserTokenConfig() bool {
+	hasAccessToken := *twitchAccessToken != "" || *twitchAccessTokenFile != ""
+	hasRefreshToken := *twitchRefreshToken != "" || *twitchRefreshTokenFile != ""
+	return hasAccessToken && hasRefreshToken
+}
+
 func init() {
 	prometheus.MustRegister(versioncollector.NewCollector("twitch_exporter"))
 }
@@ -97,7 +122,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *twitchAccessToken != "" && *twitchRefreshToken != "" {
+	if hasUserTokenConfig() {
 		clientType = "user"
 	}
 
@@ -214,6 +239,26 @@ func refreshAppAccessToken(logger *slog.Logger, client *helix.Client) {
 
 func refreshUserAccessToken(logger *slog.Logger, client *helix.Client) {
 	logger.Info("Refreshing user access token")
+
+	// If using file-based tokens, re-read them from files (allows external
+	// components/sidecars to update the tokens)
+	if *twitchAccessTokenFile != "" || *twitchRefreshTokenFile != "" {
+		accessToken, err := getTokenValue(*twitchAccessTokenFile, *twitchAccessToken)
+		if err != nil {
+			logger.Error("Error reading access token", "err", err)
+			return
+		}
+		refreshToken, err := getTokenValue(*twitchRefreshTokenFile, *twitchRefreshToken)
+		if err != nil {
+			logger.Error("Error reading refresh token", "err", err)
+			return
+		}
+		client.SetUserAccessToken(accessToken)
+		client.SetRefreshToken(refreshToken)
+		logger.Info("User access token refreshed from file")
+		return
+	}
+
 	userAccessToken, err := client.RefreshUserAccessToken(client.GetRefreshToken())
 	if err != nil {
 		logger.Error("Error getting user access token", "err", err)
@@ -256,14 +301,26 @@ func newClientWithSecret(logger *slog.Logger) (*helix.Client, error) {
 // newClientWithUserAccessToken creates a new Twitch client with a user access token.
 // this is required for private data, such as subscriber counts.
 func newClientWithUserAccessToken(logger *slog.Logger) (*helix.Client, error) {
+	accessToken, err := getTokenValue(*twitchAccessTokenFile, *twitchAccessToken)
+	if err != nil {
+		logger.Error("Error reading access token", "err", err)
+		return nil, err
+	}
+
+	refreshToken, err := getTokenValue(*twitchRefreshTokenFile, *twitchRefreshToken)
+	if err != nil {
+		logger.Error("Error reading refresh token", "err", err)
+		return nil, err
+	}
+
 	// providing a refresh token allows the helix client to refresh the access
 	// token when it expires. this is done automatically when using the helix
 	// client.
 	client, err := helix.NewClient(&helix.Options{
 		ClientID:        *twitchClientID,
 		ClientSecret:    *twitchClientSecret,
-		UserAccessToken: *twitchAccessToken,
-		RefreshToken:    *twitchRefreshToken,
+		UserAccessToken: accessToken,
+		RefreshToken:    refreshToken,
 	})
 
 	if err != nil {

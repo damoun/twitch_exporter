@@ -237,7 +237,10 @@
             Add this URL to your Twitch app's OAuth Redirect URLs
         </p>
 
-        <label>Scopes</label>
+        <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
+            <label style="margin: 0;">Scopes</label>
+            <button type="button" onclick="toggleAllScopes()" style="margin: 0; padding: 0.25rem 0.5rem; font-size: 0.8rem;">Select All</button>
+        </div>
         <div class="scopes">
             <div class="scope-group">
                 <div class="scope-group-title">Channel Metrics</div>
@@ -326,6 +329,12 @@
         function getSelectedScopes() {
             const checkboxes = document.querySelectorAll('.scopes input[type="checkbox"]:checked');
             return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        function toggleAllScopes() {
+            const checkboxes = document.querySelectorAll('.scopes input[type="checkbox"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
         }
 
         function authorize() {

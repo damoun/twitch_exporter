@@ -19,7 +19,6 @@ make
 | ------ | ------- | ------ |
 | twitch_channel_up | Is the twitch channel Online. | username, game |
 | twitch_channel_viewers_total | Is the total number of viewers on an online twitch channel. | username, game |
-| twitch_channel_views_total | Is the total number of views on a twitch channel. | username |
 | twitch_channel_followers_total | Is the total number of follower on a twitch channel. | username |
 | twitch_channel_subscribers_total | Is the total number of subscriber on a twitch channel. | username, tier, gifted |
 | twitch_channel_chat_messages_total | Is the total number of chat messages from a user within a channel. | username, chatter_username |

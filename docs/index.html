@@ -190,42 +190,6 @@
         You need to <a href="https://dev.twitch.tv/console/apps" target="_blank">create a Twitch application</a> first.
     </div>
 
-    <h2>Metrics Reference</h2>
-    <table>
-        <tr>
-            <th>Metric</th>
-            <th>Required Scope</th>
-        </tr>
-        <tr>
-            <td><code>channel_up</code></td>
-            <td><span class="public">Public (app token)</span></td>
-        </tr>
-        <tr>
-            <td><code>channel_viewers_total</code></td>
-            <td><span class="public">Public (app token)</span></td>
-        </tr>
-        <tr>
-            <td><code>channel_followers_total</code></td>
-            <td><span class="public">Public (app token)</span></td>
-        </tr>
-        <tr>
-            <td><code>channel_clips_total</code></td>
-            <td><span class="public">Public (app token)</span></td>
-        </tr>
-        <tr>
-            <td><code>channel_subscribers_total</code></td>
-            <td><code>channel:read:subscriptions</code></td>
-        </tr>
-        <tr>
-            <td><code>channel_bits_leaderboard</code></td>
-            <td><code>bits:read</code></td>
-        </tr>
-        <tr>
-            <td><code>channel_chat_messages_total</code></td>
-            <td><code>channel:bot</code> + <code>user:read:chat</code> + <code>user:bot</code></td>
-        </tr>
-    </table>
-
     <h2>Generate Token</h2>
     <div id="auth-form">
         <label for="client-id">Client ID</label>
@@ -286,6 +250,42 @@
     <div class="warning" style="margin-top: 2rem;">
         <strong>Security Note:</strong> Never share your tokens. This page runs entirely in your browser - no data is sent to any server.
     </div>
+
+    <h2>Metrics Reference</h2>
+    <table>
+        <tr>
+            <th>Metric</th>
+            <th>Required Scope</th>
+        </tr>
+        <tr>
+            <td><code>channel_up</code></td>
+            <td><span class="public">Public (app token)</span></td>
+        </tr>
+        <tr>
+            <td><code>channel_viewers_total</code></td>
+            <td><span class="public">Public (app token)</span></td>
+        </tr>
+        <tr>
+            <td><code>channel_followers_total</code></td>
+            <td><span class="public">Public (app token)</span></td>
+        </tr>
+        <tr>
+            <td><code>channel_clips_total</code></td>
+            <td><span class="public">Public (app token)</span></td>
+        </tr>
+        <tr>
+            <td><code>channel_subscribers_total</code></td>
+            <td><code>channel:read:subscriptions</code></td>
+        </tr>
+        <tr>
+            <td><code>channel_bits_leaderboard</code></td>
+            <td><code>bits:read</code></td>
+        </tr>
+        <tr>
+            <td><code>channel_chat_messages_total</code></td>
+            <td><code>channel:bot</code> + <code>user:read:chat</code> + <code>user:bot</code></td>
+        </tr>
+    </table>
 
     <script>
         // Escape HTML to prevent XSS

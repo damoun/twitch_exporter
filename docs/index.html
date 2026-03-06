@@ -294,8 +294,9 @@
         // Set default redirect URI to current page
         document.getElementById('redirect-uri').value = window.location.origin + window.location.pathname;
 
-        // Check for token in URL hash on page load
+        // Check for token/error in URL on page load
         window.onload = function() {
+            // Check hash for successful token response
             const hash = window.location.hash.substring(1);
             if (hash) {
                 const params = new URLSearchParams(hash);
@@ -306,8 +307,19 @@
                     showError(params.get('error'), params.get('error_description'));
                 }
 
-                // Clear hash from URL
                 history.replaceState(null, '', window.location.pathname);
+                return;
+            }
+
+            // Check query string for error response (e.g., redirect_mismatch)
+            const query = window.location.search.substring(1);
+            if (query) {
+                const params = new URLSearchParams(query);
+
+                if (params.has('error')) {
+                    showError(params.get('error'), params.get('error_description'));
+                    history.replaceState(null, '', window.location.pathname);
+                }
             }
         };
 

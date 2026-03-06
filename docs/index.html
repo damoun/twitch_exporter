@@ -213,6 +213,12 @@
     </div>
 
     <script>
+        // Escape HTML to prevent XSS
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
         // Set default redirect URI to current page
         document.getElementById('redirect-uri').value = window.location.origin + window.location.pathname;
 
@@ -258,9 +264,6 @@
                 return;
             }
 
-            // Store client ID for later use
-            sessionStorage.setItem('twitch_client_id', clientId);
-
             const authUrl = new URL('https://id.twitch.tv/oauth2/authorize');
             authUrl.searchParams.set('client_id', clientId);
             authUrl.searchParams.set('redirect_uri', redirectUri);
@@ -286,17 +289,17 @@
                 <div class="token-field">
                     <label>Access Token</label>
                     <div class="token-value">
-                        <input type="text" id="access-token" value="${accessToken}" readonly>
+                        <input type="text" id="access-token" value="${escapeHtml(accessToken)}" readonly>
                         <button onclick="copyToken('access-token')">Copy</button>
                     </div>
                 </div>
                 <div class="token-field">
                     <label>Token Type</label>
-                    <input type="text" value="${tokenType}" readonly>
+                    <input type="text" value="${escapeHtml(tokenType)}" readonly>
                 </div>
                 <div class="token-field">
                     <label>Granted Scopes</label>
-                    <input type="text" value="${decodeURIComponent(scope || '')}" readonly>
+                    <input type="text" value="${escapeHtml(decodeURIComponent(scope || ''))}" readonly>
                 </div>
                 <div class="info">
                     <strong>Usage:</strong> Pass this token to the exporter using <code>--twitch.access-token</code>
@@ -321,8 +324,8 @@
             resultTitle.textContent = 'Authorization Failed';
 
             resultContent.innerHTML = `
-                <p><strong>Error:</strong> ${error}</p>
-                ${description ? `<p>${description}</p>` : ''}
+                <p><strong>Error:</strong> ${escapeHtml(error)}</p>
+                ${description ? `<p>${escapeHtml(description)}</p>` : ''}
             `;
 
             resultDiv.classList.add('visible');
@@ -330,8 +333,7 @@
 
         function copyToken(inputId) {
             const input = document.getElementById(inputId);
-            input.select();
-            document.execCommand('copy');
+            navigator.clipboard.writeText(input.value);
 
             const btn = input.nextElementSibling;
             const originalText = btn.textContent;

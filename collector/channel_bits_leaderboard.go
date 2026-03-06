@@ -11,9 +11,8 @@ import (
 )
 
 type ChannelBitsLeaderboardCollector struct {
-	logger       *slog.Logger
-	client       *helix.Client
-	channelNames ChannelNames
+	logger *slog.Logger
+	client *helix.Client
 
 	channelBitsLeaderboard typedDesc
 }
@@ -22,16 +21,15 @@ func init() {
 	registerCollector("channel_bits_leaderboard", defaultDisabled, NewChannelBitsLeaderboardCollector)
 }
 
-func NewChannelBitsLeaderboardCollector(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error) {
+func NewChannelBitsLeaderboardCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, _ ChannelNames) (Collector, error) {
 	c := ChannelBitsLeaderboardCollector{
-		logger:       logger,
-		client:       client,
-		channelNames: channelNames,
+		logger: logger,
+		client: client,
 
 		channelBitsLeaderboard: typedDesc{prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "channel_bits_leaderboard"),
 			"The bits leaderboard score for users on a channel.",
-			[]string{"channel", "user_name", "user_id", "rank"}, nil,
+			[]string{"username", "user_name", "user_id", "rank"}, nil,
 		), prometheus.GaugeValue},
 	}
 
@@ -39,48 +37,46 @@ func NewChannelBitsLeaderboardCollector(logger *slog.Logger, client *helix.Clien
 }
 
 func (c ChannelBitsLeaderboardCollector) Update(ch chan<- prometheus.Metric) error {
-	if len(c.channelNames) == 0 {
-		return ErrNoData
-	}
-
-	usersResp, err := c.client.GetUsers(&helix.UsersParams{
-		Logins: c.channelNames,
-	})
-
+	// GetUsers with empty params returns the authenticated user
+	usersResp, err := c.client.GetUsers(&helix.UsersParams{})
 	if err != nil {
-		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", err)
+		c.logger.Error("Failed to collect authenticated user from Twitch helix API", "err", err)
 		return err
 	}
 
 	if usersResp.StatusCode != 200 {
-		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
+		c.logger.Error("Failed to collect authenticated user from Twitch helix API", "err", usersResp.ErrorMessage)
 		return errors.New(usersResp.ErrorMessage)
 	}
 
-	for _, user := range usersResp.Data.Users {
-		bitsResp, err := c.client.GetBitsLeaderboard(&helix.BitsLeaderboardParams{
-			Count: 100,
-		})
+	if len(usersResp.Data.Users) == 0 {
+		return ErrNoData
+	}
 
-		if err != nil {
-			c.logger.Error("Failed to collect bits leaderboard from Twitch helix API", "err", err)
-			return err
-		}
+	username := usersResp.Data.Users[0].DisplayName
 
-		if bitsResp.StatusCode != 200 {
-			c.logger.Error("Failed to collect bits leaderboard from Twitch helix API", "err", bitsResp.ErrorMessage)
-			return errors.New(bitsResp.ErrorMessage)
-		}
+	// GetBitsLeaderboard returns the leaderboard for the authenticated broadcaster
+	bitsResp, err := c.client.GetBitsLeaderboard(&helix.BitsLeaderboardParams{
+		Count: 100,
+	})
+	if err != nil {
+		c.logger.Error("Failed to collect bits leaderboard from Twitch helix API", "err", err)
+		return err
+	}
 
-		for _, entry := range bitsResp.Data.UserBitTotals {
-			ch <- c.channelBitsLeaderboard.mustNewConstMetric(
-				float64(entry.Score),
-				user.DisplayName,
-				entry.UserName,
-				entry.UserID,
-				strconv.Itoa(entry.Rank),
-			)
-		}
+	if bitsResp.StatusCode != 200 {
+		c.logger.Error("Failed to collect bits leaderboard from Twitch helix API", "err", bitsResp.ErrorMessage)
+		return errors.New(bitsResp.ErrorMessage)
+	}
+
+	for _, entry := range bitsResp.Data.UserBitTotals {
+		ch <- c.channelBitsLeaderboard.mustNewConstMetric(
+			float64(entry.Score),
+			username,
+			entry.UserName,
+			entry.UserID,
+			strconv.Itoa(entry.Rank),
+		)
 	}
 
 	return nil

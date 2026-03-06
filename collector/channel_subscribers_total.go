@@ -19,7 +19,8 @@ type ChannelSubscriberTotalCollector struct {
 	client       *helix.Client
 	channelNames ChannelNames
 
-	channelSubscribersTotal typedDesc
+	channelSubscribersTotal   typedDesc
+	channelSubscriptionPoints typedDesc
 }
 
 func init() {
@@ -36,6 +37,11 @@ func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Clien
 			prometheus.BuildFQName(namespace, "", "channel_subscribers_total"),
 			"The number of subscriber of a channel.",
 			[]string{"username", "tier", "gifted"}, nil,
+		), prometheus.GaugeValue},
+		channelSubscriptionPoints: typedDesc{prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "channel_subscription_points"),
+			"The number of subscription points of a channel.",
+			[]string{"username"}, nil,
 		), prometheus.GaugeValue},
 	}
 
@@ -101,6 +107,8 @@ func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 		for tier, counter := range subCounter {
 			ch <- c.channelSubscribersTotal.mustNewConstMetric(float64(counter), user.DisplayName, tier, notGiftedSub)
 		}
+
+		ch <- c.channelSubscriptionPoints.mustNewConstMetric(float64(subscribtionsResp.Data.Points), user.DisplayName)
 	}
 
 	return nil

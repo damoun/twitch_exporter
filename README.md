@@ -58,6 +58,12 @@ make
 ** Disabled due to event-sub being disabled by default
 ```
 
+## Getting an Access Token
+
+Some metrics require a user access token with specific scopes. You can use the [Token Helper](https://damoun.github.io/twitch_exporter/) to generate one.
+
+The helper shows which scopes are required for each metric and guides you through the OAuth flow.
+
 ## Event-sub
 
 Event-sub metrics are disabled by default due to requiring a public endpoint to be exposed and more permissions and setup.

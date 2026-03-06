@@ -20,7 +20,9 @@ make
 | twitch_channel_up | Is the twitch channel Online. | username, game |
 | twitch_channel_viewers_total | Is the total number of viewers on an online twitch channel. | username, game |
 | twitch_channel_followers_total | Is the total number of follower on a twitch channel. | username |
+| twitch_channel_clips_total | Is the total number of clips on a twitch channel. | username |
 | twitch_channel_subscribers_total | Is the total number of subscriber on a twitch channel. | username, tier, gifted |
+| twitch_channel_bits_leaderboard | The bits leaderboard score for users on a channel. | username, user_name, user_id, rank |
 | twitch_channel_chat_messages_total | Is the total number of chat messages from a user within a channel. | username, chatter_username |
 
 ### Flags
@@ -44,7 +46,9 @@ make
 * __`eventsub.webhook-url`:__ The url your collector will be expected to be hosted at, eg: http://example.svc/eventsub (Must end with `/eventsub`).
 * __`eventsub.webhook-secret`:__ Secure 1-100 character secret for your eventsub validation
 * __`--[no-]collector.channel_followers_total`:__ Enable the channel_followers_total collector (default: enabled).
+* __`--[no-]collector.channel_clips_total`:__ Enable the channel_clips_total collector (default: enabled).
 * __`--[no-]collector.channel_subscribers_total`:__ Enable the channel_subscribers_total collector (default: disabled*).
+* __`--[no-]collector.channel_bits_leaderboard`:__ Enable the channel_bits_leaderboard collector (default: disabled*).
 * __`--[no-]collector.channel_up`:__ Enable the channel_up collector (default: enabled).
 * __`--[no-]collector.channel_viewers_total`:__ Enable the channel_viewers_total collector (default: enabled).
 * __`--[no-]collector.channel_chat_messages_total`:__ Enable the channel_chat_messages_total (default: disabled**).
@@ -53,6 +57,12 @@ make
 * Disabled due to the requirement of a user access token, which must be acquired outside of the collector
 ** Disabled due to event-sub being disabled by default
 ```
+
+## Getting an Access Token
+
+Some metrics require a user access token with specific scopes. You can use the [Token Helper](https://damoun.github.io/twitch_exporter/) to generate one.
+
+The helper shows which scopes are required for each metric and guides you through the OAuth flow.
 
 ## Event-sub
 
@@ -71,7 +81,7 @@ You can read more about the process [here](https://dev.twitch.tv/docs/chat/authe
 
 1. Install the twitch-cli
 1. Ensure your twitch app has localhost:3000 added as a redirect uri
-1. `twitch token -u -s 'channel:bot user:chat:read user:bot channel:read:subscriptions'` (At this point, since you are getting a user token, you may as well get the subscriptions metric too)
+1. `twitch token -u -s 'channel:bot user:read:chat user:bot channel:read:subscriptions bits:read'` (At this point, since you are getting a user token, you may as well get the subscriptions and bits metrics too)
 1. Start the collector with `client-id`, `client-secret`, `access-token`, and `refresh-token` defined
 
 ```

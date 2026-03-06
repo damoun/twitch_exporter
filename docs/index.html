@@ -149,6 +149,36 @@
         a {
             color: #9147ff;
         }
+        h2 {
+            color: #9147ff;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 0.5rem;
+            border-bottom: 1px solid #3a3a3d;
+        }
+        th {
+            color: #9147ff;
+            font-weight: 500;
+        }
+        td code {
+            background: #0e0e10;
+            padding: 0.1rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.85rem;
+        }
+        .public {
+            color: #00fa9a;
+        }
     </style>
 </head>
 <body>
@@ -160,6 +190,43 @@
         You need to <a href="https://dev.twitch.tv/console/apps" target="_blank">create a Twitch application</a> first.
     </div>
 
+    <h2>Metrics Reference</h2>
+    <table>
+        <tr>
+            <th>Metric</th>
+            <th>Required Scope</th>
+        </tr>
+        <tr>
+            <td><code>channel_up</code></td>
+            <td><span class="public">Public (app token)</span></td>
+        </tr>
+        <tr>
+            <td><code>channel_viewers_total</code></td>
+            <td><span class="public">Public (app token)</span></td>
+        </tr>
+        <tr>
+            <td><code>channel_followers_total</code></td>
+            <td><span class="public">Public (app token)</span></td>
+        </tr>
+        <tr>
+            <td><code>channel_clips_total</code></td>
+            <td><span class="public">Public (app token)</span></td>
+        </tr>
+        <tr>
+            <td><code>channel_subscribers_total</code></td>
+            <td><code>channel:read:subscriptions</code></td>
+        </tr>
+        <tr>
+            <td><code>channel_bits_leaderboard</code></td>
+            <td><code>bits:read</code></td>
+        </tr>
+        <tr>
+            <td><code>channel_chat_messages_total</code></td>
+            <td><code>channel:bot</code> + <code>user:read:chat</code> + <code>user:bot</code></td>
+        </tr>
+    </table>
+
+    <h2>Generate Token</h2>
     <div id="auth-form">
         <label for="client-id">Client ID</label>
         <input type="text" id="client-id" placeholder="Your Twitch application Client ID">
@@ -177,16 +244,16 @@
                 <div class="scope-item">
                     <input type="checkbox" id="scope-subs" value="channel:read:subscriptions" checked>
                     <code>channel:read:subscriptions</code>
-                    <span class="scope-desc">Subscriber count</span>
+                    <span class="scope-desc">channel_subscribers_total</span>
                 </div>
                 <div class="scope-item">
                     <input type="checkbox" id="scope-bits" value="bits:read">
                     <code>bits:read</code>
-                    <span class="scope-desc">Bits leaderboard</span>
+                    <span class="scope-desc">channel_bits_leaderboard</span>
                 </div>
             </div>
             <div class="scope-group">
-                <div class="scope-group-title">EventSub (Chat Messages)</div>
+                <div class="scope-group-title">EventSub (channel_chat_messages_total)</div>
                 <div class="scope-item">
                     <input type="checkbox" id="scope-bot" value="channel:bot">
                     <code>channel:bot</code>

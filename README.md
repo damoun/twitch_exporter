@@ -33,6 +33,8 @@ make
 * __`twitch.channel`:__ The name of a twitch channel.
 * __`twitch.client-id`:__ The client ID to request the New Twitch API (helix).
 * __`twitch.access-token`:__ The access token to request the New Twitch API (helix).
+* __`twitch.access-token-file`:__ File containing the access token (alternative to `twitch.access-token`).
+* __`twitch.refresh-token-file`:__ File containing the refresh token (alternative to `twitch.refresh-token`).
 * __`log.format`:__ Set the log target and format. Example: `logger:syslog?appname=bob&local=7`
     or `logger:stdout?json=true`
 * __`log.level`:__ Logging level. `info` by default.

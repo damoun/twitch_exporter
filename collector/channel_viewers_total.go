@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type ChannelViewersTotalCollector struct {
+type channelViewersTotalCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
@@ -20,8 +20,8 @@ func init() {
 	registerCollector("channel_viewers_total", defaultEnabled, NewChannelViewersTotalCollector)
 }
 
-func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error) {
-	c := ChannelViewersTotalCollector{
+func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
+	c := channelViewersTotalCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
@@ -36,7 +36,7 @@ func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, 
 	return c, nil
 }
 
-func (c ChannelViewersTotalCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelViewersTotalCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}

@@ -31,6 +31,8 @@ make
 | twitch_channel_banned_users_total | The number of banned users of a channel. | username |
 | twitch_channel_goal_current | The current amount for a creator goal in a channel. | username, type |
 | twitch_channel_goal_target | The target amount for a creator goal in a channel. | username, type |
+| twitch_channel_charity_current_amount | The current amount raised for the charity campaign in a channel. | username, currency |
+| twitch_channel_charity_target_amount | The target amount for the charity campaign in a channel. | username, currency |
 | twitch_channel_bits_leaderboard | The bits leaderboard score for users on a channel. | username, user_name, user_id, rank |
 | twitch_channel_chatters_total | The number of users in a channel's chat (only non-zero when channel is live). | username |
 | twitch_channel_chat_emote_only | Whether emote-only mode is enabled in a channel's chat. | username |

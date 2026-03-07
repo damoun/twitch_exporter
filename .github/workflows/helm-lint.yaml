@@ -1,0 +1,23 @@
+name: Helm Lint
+
+on:
+  push:
+    paths:
+      - "charts/**"
+  pull_request:
+    paths:
+      - "charts/**"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Helm lint
+        run: helm lint charts/twitch-exporter/
+
+      - name: Helm template dry-run
+        run: helm template test charts/twitch-exporter/ --set twitch.clientId=test --set twitch.clientSecret=test

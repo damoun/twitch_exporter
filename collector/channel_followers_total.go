@@ -21,7 +21,7 @@ func init() {
 	registerCollector("channel_followers_total", defaultEnabled, NewChannelFollowersTotalCollector)
 }
 
-func NewChannelFollowersTotalCollector(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error) {
+func NewChannelFollowersTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
 	c := channelFollowersTotalCollector{
 		logger:       logger,
 		client:       client,
@@ -47,7 +47,6 @@ func (c channelFollowersTotalCollector) Update(ch chan<- prometheus.Metric) erro
 		return err
 	}
 
-	// todo: we can avoid this with a shared cache of username to userID that has a short TTL
 	for _, user := range users {
 		usersFollowsResp, err := c.client.GetChannelFollows(&helix.GetChannelFollowsParams{
 			BroadcasterID: user.ID,

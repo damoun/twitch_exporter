@@ -1,0 +1,38 @@
+name: Trivy Helm Chart Security Scan
+
+on:
+  pull_request:
+    paths:
+      - "charts/**"
+  push:
+    branches: ["main"]
+    paths:
+      - "charts/**"
+
+permissions: {}
+
+jobs:
+  trivy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run Trivy misconfiguration scan
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          scan-type: fs
+          scan-ref: charts/
+          scanners: misconfig
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@0c0c5dc2f136b98cb0537075ccfa21f94cd9a63e # codeql-bundle-v2.24.3
+        with:
+          sarif_file: trivy-results.sarif

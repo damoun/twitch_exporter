@@ -1,45 +1,29 @@
 # Twitch Exporter
 
-[![CircleCI](https://circleci.com/gh/damoun/twitch_exporter/tree/master.svg?style=shield)][circleci]
-[![Go Report Card](https://goreportcard.com/badge/github.com/damoun/twitch_exporter)][goreportcard]
-
 Export [Twitch](https://dev.twitch.tv/docs/api/reference) metrics to [Prometheus](https://github.com/prometheus/prometheus).
 
-To run it:
+## Collectors
 
-```bash
-make
-./twitch_exporter [flags]
-```
+Each collector can be toggled with `--[no-]collector.<name>` flags.
 
-## Exported Metrics
-
-| Metric | Meaning | Labels |
-| ------ | ------- | ------ |
-| twitch_channel_up | Is the twitch channel Online. | username, game |
-| twitch_channel_viewers_total | Is the total number of viewers on an online twitch channel. | username, game |
-| twitch_channel_followers_total | Is the total number of follower on a twitch channel. | username |
-| twitch_channel_clips_total | Is the total number of clips on a twitch channel. | username |
-| twitch_channel_info | Channel metadata (value=1). | username, game, title, language |
-| twitch_channel_delay_seconds | The stream delay in seconds for a channel. | username |
-| twitch_channel_emotes_total | The number of custom emotes of a channel. | username |
-| twitch_channel_subscribers_total | Is the total number of subscriber on a twitch channel. | username, tier, gifted |
-| twitch_channel_subscription_points | The number of subscription points of a channel. | username |
-| twitch_channel_moderators_total | The number of moderators of a channel. | username |
-| twitch_channel_vips_total | The number of VIPs of a channel. | username |
-| twitch_channel_banned_users_total | The number of banned users of a channel. | username |
-| twitch_channel_goal_current | The current amount for a creator goal in a channel. | username, type |
-| twitch_channel_goal_target | The target amount for a creator goal in a channel. | username, type |
-| twitch_channel_charity_current_amount | The current amount raised for the charity campaign in a channel. | username, currency |
-| twitch_channel_charity_target_amount | The target amount for the charity campaign in a channel. | username, currency |
-| twitch_channel_bits_leaderboard | The bits leaderboard score for users on a channel. | username, user_name, user_id, rank |
-| twitch_channel_chatters_total | The number of users in a channel's chat (only non-zero when channel is live). | username |
-| twitch_channel_chat_emote_only | Whether emote-only mode is enabled in a channel's chat. | username |
-| twitch_channel_chat_followers_only | Whether followers-only mode is enabled in a channel's chat. | username |
-| twitch_channel_chat_subscriber_only | Whether subscriber-only mode is enabled in a channel's chat. | username |
-| twitch_channel_chat_slow_mode | Whether slow mode is enabled in a channel's chat. | username |
-| twitch_channel_chat_slow_mode_wait_seconds | The slow mode wait time in seconds for a channel's chat. | username |
-| twitch_channel_chat_messages_total | Is the total number of chat messages from a user within a channel. | username, chatter_username |
+| Collector | Default | Auth | Metrics |
+|---|---|---|---|
+| `channel_up` | enabled | app | `twitch_channel_up` (username, game) |
+| `channel_viewers_total` | enabled | app | `twitch_channel_viewers_total` (username, game) |
+| `channel_followers_total` | enabled | app | `twitch_channel_followers_total` (username) |
+| `channel_clips_total` | enabled | app | `twitch_channel_clips_total` (username) |
+| `channel_info` | enabled | app | `twitch_channel_info` (username, game, title, language), `twitch_channel_delay_seconds` (username) |
+| `channel_emotes_total` | enabled | app | `twitch_channel_emotes_total` (username) |
+| `channel_chat_settings` | enabled | app | `twitch_channel_chat_emote_only`, `_followers_only`, `_subscriber_only`, `_slow_mode`, `_slow_mode_wait_seconds` (username) |
+| `channel_subscribers_total` | disabled | user | `twitch_channel_subscribers_total` (username, tier, gifted) |
+| `channel_bits_leaderboard` | disabled | user | `twitch_channel_bits_leaderboard` (username, user_name, user_id, rank) |
+| `channel_chatters_total` | disabled | user | `twitch_channel_chatters_total` (username) |
+| `channel_goals` | disabled | user | `twitch_channel_goal_current`, `_goal_target` (username, type) |
+| `channel_vips_total` | disabled | user | `twitch_channel_vips_total` (username) |
+| `channel_banned_users_total` | disabled | user | `twitch_channel_banned_users_total` (username) |
+| `channel_charity` | disabled | user | `twitch_channel_charity_current_amount`, `_charity_target_amount` (username, currency) |
+| `channel_moderators_total` | disabled | user | `twitch_channel_moderators_total` (username) |
+| `channel_chat_messages_total` | disabled | user + EventSub | `twitch_channel_chat_messages_total` (username, chatter_username) |
 
 ### Flags
 
@@ -49,8 +33,10 @@ make
 
 * __`twitch.channel`:__ The name of a twitch channel.
 * __`twitch.client-id`:__ The client ID to request the New Twitch API (helix).
+* __`twitch.client-secret`:__ The client secret to request the New Twitch API (helix).
 * __`twitch.access-token`:__ The access token to request the New Twitch API (helix).
 * __`twitch.access-token-file`:__ File containing the access token (alternative to `twitch.access-token`).
+* __`twitch.refresh-token`:__ The refresh token to request the New Twitch API (helix).
 * __`twitch.refresh-token-file`:__ File containing the refresh token (alternative to `twitch.refresh-token`).
 * __`log.format`:__ Set the log target and format. Example: `logger:syslog?appname=bob&local=7`
     or `logger:stdout?json=true`
@@ -60,19 +46,7 @@ make
 * __`web.telemetry-path`:__ Path under which to expose metrics.
 * __`eventsub.enabled`:__ Enable eventsub endpoint (default: false).
 * __`eventsub.webhook-url`:__ The url your collector will be expected to be hosted at, eg: http://example.svc/eventsub (Must end with `/eventsub`).
-* __`eventsub.webhook-secret`:__ Secure 1-100 character secret for your eventsub validation
-* __`--[no-]collector.channel_followers_total`:__ Enable the channel_followers_total collector (default: enabled).
-* __`--[no-]collector.channel_clips_total`:__ Enable the channel_clips_total collector (default: enabled).
-* __`--[no-]collector.channel_subscribers_total`:__ Enable the channel_subscribers_total collector (default: disabled*).
-* __`--[no-]collector.channel_bits_leaderboard`:__ Enable the channel_bits_leaderboard collector (default: disabled*).
-* __`--[no-]collector.channel_up`:__ Enable the channel_up collector (default: enabled).
-* __`--[no-]collector.channel_viewers_total`:__ Enable the channel_viewers_total collector (default: enabled).
-* __`--[no-]collector.channel_chat_messages_total`:__ Enable the channel_chat_messages_total (default: disabled**).
-
-```
-* Disabled due to the requirement of a user access token, which must be acquired outside of the collector
-** Disabled due to event-sub being disabled by default
-```
+* __`eventsub.webhook-secret`:__ Secure 1-100 character secret for your eventsub validation.
 
 ## Getting an Access Token
 
@@ -80,18 +54,16 @@ Some metrics require a user access token with specific scopes. You can use the [
 
 The helper shows which scopes are required for each metric and guides you through the OAuth flow.
 
-## Event-sub
+## EventSub
 
-Event-sub metrics are disabled by default due to requiring a public endpoint to be exposed and more permissions and setup.
+EventSub metrics are disabled by default due to requiring a public endpoint to be exposed and more permissions and setup.
 Due to the likeliness that you do not want to expose the service publicly and go through too much effort, it is disabled by
 default.
 
 If you wish to use eventsub based metrics then you should deploy an instance of the exporter just for the user that needs
 the eventsub metrics, such as your own channel, and just collect the privileged metrics using that exporter.
 
-> Todo: Instead of disabling all other collectors, functionality to set collectors should be implemented
-
-### Setting up eventsub metrics
+### Setting up EventSub metrics
 
 You can read more about the process [here](https://dev.twitch.tv/docs/chat/authenticating/)
 
@@ -117,9 +89,84 @@ go run twitch_exporter.go \
   --no-collector.channel_viewers_total
 ```
 
-## Useful Queries
+## Development & Testing
 
-TODO
+### Prerequisites
+
+- Go 1.21+
+- A [Twitch Developer](https://dev.twitch.tv/) account
+- [twitch-cli](https://dev.twitch.tv/docs/cli/) installed
+
+### Create a Twitch Application
+
+1. Go to https://dev.twitch.tv/console/apps
+2. Register a new app, set OAuth redirect to `http://localhost:3000`
+3. Note the Client ID and Client Secret
+
+### Build
+
+```bash
+make build
+```
+
+### Run with app token (basic collectors)
+
+```bash
+./twitch_exporter \
+  --twitch.client-id <client-id> \
+  --twitch.client-secret <client-secret> \
+  --twitch.channel <channel>
+```
+
+### Configure twitch-cli
+
+Required before generating user tokens:
+
+```bash
+twitch configure
+```
+
+Enter Client ID and Client Secret when prompted.
+
+### Get a user token (for privileged collectors)
+
+```bash
+twitch token -u -s 'channel:read:subscriptions bits:read moderator:read:chatters moderation:read channel:read:goals channel:read:charity channel:bot user:read:chat user:bot'
+```
+
+### Run with user token
+
+```bash
+./twitch_exporter \
+  --twitch.client-id <client-id> \
+  --twitch.client-secret <client-secret> \
+  --twitch.access-token <access-token> \
+  --twitch.refresh-token <refresh-token> \
+  --twitch.channel <channel> \
+  --collector.channel_subscribers_total
+```
+
+### Verify metrics
+
+```bash
+curl http://localhost:9184/metrics
+```
+
+### Run tests
+
+```bash
+make test
+```
+
+### Testing with twitch-cli mock API
+
+Start mock server:
+
+```bash
+twitch mock-api start
+```
+
+Useful for development without hitting Twitch rate limits.
 
 ## Using Docker
 
@@ -132,18 +179,19 @@ docker pull ghcr.io/damoun/twitch-exporter
 
 docker run -d -p 9184:9184 \
         ghcr.io/damoun/twitch-exporter \
-        --twitch.client-id <secret> \
-        --twitch.access-token <secret> \
+        --twitch.client-id <client-id> \
+        --twitch.client-secret <client-secret> \
         --twitch.channel dam0un
 ```
 
 ## Using Helm
+
 [Helm](https://helm.sh) must be installed to use the charts.  Please refer to
 Helm's [documentation](https://helm.sh/docs) to get started.
 
 Once Helm has been set up correctly, add the repo as follows:
 
-  helm repo add twitch-exporter https://damoun.github.io/twitch-exporter
+    helm repo add twitch-exporter https://damoun.github.io/twitch-exporter
 
 If you had already added this repo earlier, run `helm repo update` to retrieve
 the latest versions of the packages.  You can then run `helm search repo
@@ -158,13 +206,14 @@ To uninstall the chart:
     helm delete my-twitch-exporter
 
 ## Using Helmfile
+
 You are able to use a helm chart to manage your exporter, create a file named
 `helmfile.yaml` and then add this:
 
 ```yaml
 repositories:
   - name: twitch-exporter
-    url: https://damoun.github.com/twitch_exporter/
+    url: https://damoun.github.io/twitch-exporter
   - name: grafana
     url: https://grafana.github.io/helm-charts
 
@@ -223,6 +272,3 @@ twitch:
 > Ingress is disabled by default, however you can enable it to allow for public
 > access to your exporter. Such as if you use a firewall and scrape from another
 > device.
-
-[circleci]: https://circleci.com/gh/damoun/twitch_exporter
-[goreportcard]: https://goreportcard.com/report/github.com/damoun/twitch_exporter

@@ -48,10 +48,6 @@ Each collector can be toggled with `--[no-]collector.<name>` flags.
 * __`eventsub.webhook-url`:__ The url your collector will be expected to be hosted at, eg: http://example.svc/eventsub (Must end with `/eventsub`).
 * __`eventsub.webhook-secret`:__ Secure 1-100 character secret for your eventsub validation.
 
-## Getting an Access Token
-
-Some metrics require a user access token with specific scopes. You can use the [Token Helper](https://damoun.github.io/twitch_exporter/) to generate one through the OAuth flow, or use `twitch-cli` as described in the [Development & Testing](#development--testing) section.
-
 ## EventSub
 
 EventSub metrics are disabled by default because they require a publicly accessible endpoint and additional permissions.

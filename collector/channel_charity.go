@@ -50,21 +50,12 @@ func (c channelCharityCollector) Update(ch chan<- prometheus.Metric) error {
 		return ErrNoData
 	}
 
-	usersResp, err := c.client.GetUsers(&helix.UsersParams{
-		Logins: c.channelNames,
-	})
-
+	users, err := getUsers(c.client, c.logger, c.channelNames)
 	if err != nil {
-		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", err)
 		return err
 	}
 
-	if usersResp.StatusCode != 200 {
-		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
-		return errors.New(usersResp.ErrorMessage)
-	}
-
-	for _, user := range usersResp.Data.Users {
+	for _, user := range users {
 		charityResp, err := c.client.GetCharityCampaigns(&helix.CharityCampaignsParams{
 			BroadcasterID: user.ID,
 		})

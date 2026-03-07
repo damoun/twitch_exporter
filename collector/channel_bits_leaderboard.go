@@ -37,23 +37,17 @@ func NewChannelBitsLeaderboardCollector(logger *slog.Logger, client *helix.Clien
 }
 
 func (c ChannelBitsLeaderboardCollector) Update(ch chan<- prometheus.Metric) error {
-	// GetUsers with empty params returns the authenticated user
-	usersResp, err := c.client.GetUsers(&helix.UsersParams{})
+	// GetUsers with nil logins returns the authenticated user
+	authUsers, err := getUsers(c.client, c.logger, nil)
 	if err != nil {
-		c.logger.Error("Failed to collect authenticated user from Twitch helix API", "err", err)
 		return err
 	}
 
-	if usersResp.StatusCode != 200 {
-		c.logger.Error("Failed to collect authenticated user from Twitch helix API", "err", usersResp.ErrorMessage)
-		return errors.New(usersResp.ErrorMessage)
-	}
-
-	if len(usersResp.Data.Users) == 0 {
+	if len(authUsers) == 0 {
 		return ErrNoData
 	}
 
-	username := usersResp.Data.Users[0].DisplayName
+	username := authUsers[0].DisplayName
 
 	// GetBitsLeaderboard returns the leaderboard for the authenticated broadcaster
 	bitsResp, err := c.client.GetBitsLeaderboard(&helix.BitsLeaderboardParams{

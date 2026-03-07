@@ -76,14 +76,12 @@ func NewChannelChatMessagesCollector(logger *slog.Logger, client *helix.Client, 
 	}
 
 	broadcasterIDs := []string{}
-	users, err := client.GetUsers(&helix.UsersParams{
-		Logins: channelNames,
-	})
+	users, err := getUsers(client, logger, channelNames)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, user := range users.Data.Users {
+	for _, user := range users {
 		broadcasterIDs = append(broadcasterIDs, user.ID)
 	}
 

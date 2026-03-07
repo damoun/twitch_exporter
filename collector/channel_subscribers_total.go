@@ -14,7 +14,7 @@ const (
 	notGiftedSub = "false"
 )
 
-type ChannelSubscriberTotalCollector struct {
+type channelSubscriberTotalCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
@@ -27,8 +27,8 @@ func init() {
 	registerCollector("channel_subscribers_total", defaultDisabled, NewChannelSubscriberTotalCollector)
 }
 
-func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error) {
-	c := ChannelSubscriberTotalCollector{
+func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
+	c := channelSubscriberTotalCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
@@ -48,7 +48,7 @@ func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Clien
 	return c, nil
 }
 
-func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}
@@ -58,9 +58,8 @@ func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 		return err
 	}
 
-	// todo: we can avoid this with a shared cache of username to userID that has a short TTL
 	for _, user := range users {
-		subscribtionsResp, err := c.client.GetSubscriptions(&helix.SubscriptionsParams{
+		subscriptionsResp, err := c.client.GetSubscriptions(&helix.SubscriptionsParams{
 			BroadcasterID: user.ID,
 		})
 
@@ -69,15 +68,15 @@ func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 			return err
 		}
 
-		if subscribtionsResp.StatusCode != 200 {
-			c.logger.Error("Failed to collect subscribers stats from Twitch helix API", "err", subscribtionsResp.ErrorMessage)
-			return errors.New(subscribtionsResp.ErrorMessage)
+		if subscriptionsResp.StatusCode != 200 {
+			c.logger.Error("Failed to collect subscribers stats from Twitch helix API", "err", subscriptionsResp.ErrorMessage)
+			return errors.New(subscriptionsResp.ErrorMessage)
 		}
 
 		subCounter := make(map[string]int)
 		giftedSubCounter := make(map[string]int)
 
-		for _, subscription := range subscribtionsResp.Data.Subscriptions {
+		for _, subscription := range subscriptionsResp.Data.Subscriptions {
 			if subscription.IsGift {
 				if _, ok := giftedSubCounter[subscription.Tier]; !ok {
 					giftedSubCounter[subscription.Tier] = 0
@@ -99,7 +98,7 @@ func (c ChannelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 			ch <- c.channelSubscribersTotal.mustNewConstMetric(float64(counter), user.DisplayName, tier, notGiftedSub)
 		}
 
-		ch <- c.channelSubscriptionPoints.mustNewConstMetric(float64(subscribtionsResp.Data.Points), user.DisplayName)
+		ch <- c.channelSubscriptionPoints.mustNewConstMetric(float64(subscriptionsResp.Data.Points), user.DisplayName)
 	}
 
 	return nil

@@ -10,7 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type ChannelBitsLeaderboardCollector struct {
+type channelBitsLeaderboardCollector struct {
 	logger *slog.Logger
 	client *helix.Client
 
@@ -22,7 +22,7 @@ func init() {
 }
 
 func NewChannelBitsLeaderboardCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, _ ChannelNames) (Collector, error) {
-	c := ChannelBitsLeaderboardCollector{
+	c := channelBitsLeaderboardCollector{
 		logger: logger,
 		client: client,
 
@@ -36,7 +36,7 @@ func NewChannelBitsLeaderboardCollector(logger *slog.Logger, client *helix.Clien
 	return c, nil
 }
 
-func (c ChannelBitsLeaderboardCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelBitsLeaderboardCollector) Update(ch chan<- prometheus.Metric) error {
 	// GetUsers with nil logins returns the authenticated user
 	authUsers, err := getUsers(c.client, c.logger, nil)
 	if err != nil {

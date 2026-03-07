@@ -20,7 +20,7 @@ func init() {
 	registerCollector("channel_up", defaultEnabled, NewChannelUpCollector)
 }
 
-func NewChannelUpCollector(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error) {
+func NewChannelUpCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
 	c := channelUpCollector{
 		logger:       logger,
 		client:       client,

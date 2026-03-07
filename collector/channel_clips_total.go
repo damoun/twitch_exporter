@@ -21,7 +21,7 @@ func init() {
 	registerCollector("channel_clips_total", defaultEnabled, NewChannelClipsTotalCollector)
 }
 
-func NewChannelClipsTotalCollector(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error) {
+func NewChannelClipsTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
 	c := channelClipsTotalCollector{
 		logger:       logger,
 		client:       client,

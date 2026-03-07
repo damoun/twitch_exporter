@@ -9,7 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type ChannelChattersCollector struct {
+type channelChattersCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
@@ -22,7 +22,7 @@ func init() {
 }
 
 func NewChannelChattersCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
-	c := ChannelChattersCollector{
+	c := channelChattersCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
@@ -37,7 +37,7 @@ func NewChannelChattersCollector(logger *slog.Logger, client *helix.Client, _ *e
 	return c, nil
 }
 
-func (c ChannelChattersCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelChattersCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}

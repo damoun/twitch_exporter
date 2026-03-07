@@ -63,6 +63,7 @@ Both modes auto-refresh tokens every 24 hours.
 
 ### Deployment
 
-- Docker image built via `Dockerfile` (uses prometheus busybox base)
+- Docker image built via multi-stage `Dockerfile` (golang builder + distroless final stage), published to `ghcr.io/damoun/twitch-exporter`
+- Multi-arch builds (amd64, arm/v7, arm64) via `docker buildx` in CI
 - Helm chart in `charts/twitch-exporter/`
 - Default listen address: `0.0.0.0:9184`

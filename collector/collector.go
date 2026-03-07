@@ -66,7 +66,6 @@ func registerCollector(collector string, isDefaultEnabled bool, factory func(log
 
 type Exporter struct {
 	Collectors map[string]Collector
-	client     *helix.Client
 	logger     *slog.Logger
 }
 
@@ -75,14 +74,6 @@ type Exporter struct {
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- scrapeDurationDesc
 	ch <- scrapeSuccessDesc
-}
-
-func DisableDefaultCollectors() {
-	for c := range collectorState {
-		if _, ok := forcedCollectors[c]; !ok {
-			*collectorState[c] = false
-		}
-	}
 }
 
 // collectorFlagAction generates a new action function for the given collector
@@ -130,15 +121,13 @@ func NewExporter(logger *slog.Logger, client *helix.Client, eventsubClient *even
 		}
 	}
 
-	for k, _ := range collectors {
+	for k := range collectors {
 		logger.Info("enabled collector", "collector", k)
 	}
 
 	return &Exporter{
 		Collectors: collectors,
-
-		client: client,
-		logger: logger,
+		logger:     logger,
 	}, nil
 }
 
@@ -194,7 +183,7 @@ func (d *typedDesc) mustNewConstMetric(value float64, labels ...string) promethe
 var ErrNoData = errors.New("collector returned no data")
 
 func IsNoDataError(err error) bool {
-	return err == ErrNoData
+	return errors.Is(err, ErrNoData)
 }
 
 // countPaginated counts items across paginated API responses.
@@ -221,6 +210,7 @@ func countPaginated(fetchPage func(cursor string) (count int, next string, err e
 	return total, nil
 }
 
+// todo: we can avoid this with a shared cache of username to userID that has a short TTL
 // getUsers resolves channel login names to Twitch user objects.
 // It returns an error if the API call fails or returns a non-200 status.
 func getUsers(client *helix.Client, logger *slog.Logger, logins []string) ([]helix.User, error) {

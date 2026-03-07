@@ -159,7 +159,5 @@ func (c *Client) Subscribe(eventType string, broadcasterID string) error {
 
 	c.logger.Info("subscription created", "error", res.Error, "status_code", res.StatusCode, "data", res.Data)
 
-	// c.logger.Info("subscription created", "event", eventType, "broadcaster_id", broadcasterID, "subscription_id", res.Data.EventSubSubscriptions[0].ID)
-
 	return nil
 }

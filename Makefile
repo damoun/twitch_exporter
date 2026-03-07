@@ -1,10 +1,11 @@
-# Needs to be defined before including Makefile.common to auto-generate targets
-DOCKER_ARCHS ?= amd64 armv7 arm64
-DOCKER_REPO  ?= damoun
+DOCKER_REPO  ?= ghcr.io/damoun
 
 include Makefile.common
 
 DOCKER_IMAGE_NAME ?= twitch-exporter
+
+docker:
+	docker buildx build --load -t $(DOCKER_REPO)/$(DOCKER_IMAGE_NAME):$(SANITIZED_DOCKER_IMAGE_TAG) .
 
 promu-build:
 	@echo ">> running promu crossbuild -v"

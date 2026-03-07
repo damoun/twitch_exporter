@@ -1,0 +1,5 @@
+# Namespace is determined at install time, not in the chart template
+KSV-0110
+
+# ghcr.io is a trusted registry (GitHub Container Registry)
+KSV-0125

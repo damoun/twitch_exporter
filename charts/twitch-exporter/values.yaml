@@ -1,3 +1,15 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/damoun/twitch-exporter
+  pullPolicy: Always
+  tag: "latest"
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
 twitch:
   # client-id is required at all times
   clientId: ""
@@ -32,24 +44,66 @@ twitch:
   # exporter, such as --collector.channel_chat_messages_total
   additionalParameters: []
 
-image:
-  repository: ghcr.io/damoun/twitch-exporter
-  pullPolicy: Always
-  tag: ""
-  pullSecrets: []
-
 serviceAccount:
   create: true
   automount: true
+  annotations: {}
+  name: ""
+
+securityContext:
+  runAsNonRoot: true
+  fsGroup: 65534
+
+containerSecurityContext:
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
 
 service:
   type: ClusterIP
   port: 9184
 
-# ingress would be required if using eventsub
 ingress:
   enabled: false
+  className: ""
   annotations: {}
+  hosts: []
+  #  - host: twitch-exporter.example.com
+  #    paths:
+  #      - path: /
+  #        pathType: Prefix
+  tls: []
+  #  - secretName: twitch-exporter-tls
+  #    hosts:
+  #      - twitch-exporter.example.com
+
+gateway:
+  enabled: false
+  parentRefs: []
+  #  - name: my-gateway
+  #    namespace: default
+  hostnames: []
+  rules: []
+  #  - matches:
+  #      - path:
+  #          type: PathPrefix
+  #          value: /
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+networkPolicy:
+  enabled: false
+
+serviceMonitor:
+  enabled: false
+  interval: ""
+  scrapeTimeout: ""
+  labels: {}
 
 resources:
   requests:
@@ -58,6 +112,14 @@ resources:
   limits:
     cpu: 200m
     memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+topologySpreadConstraints: []
 
 podLabels: {}
 

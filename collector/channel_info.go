@@ -49,23 +49,14 @@ func (c channelInfoCollector) Update(ch chan<- prometheus.Metric) error {
 		return ErrNoData
 	}
 
-	usersResp, err := c.client.GetUsers(&helix.UsersParams{
-		Logins: c.channelNames,
-	})
-
+	users, err := getUsers(c.client, c.logger, c.channelNames)
 	if err != nil {
-		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", err)
 		return err
 	}
 
-	if usersResp.StatusCode != 200 {
-		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
-		return errors.New(usersResp.ErrorMessage)
-	}
-
-	broadcasterIDs := make([]string, 0, len(usersResp.Data.Users))
-	usersByID := make(map[string]string, len(usersResp.Data.Users))
-	for _, user := range usersResp.Data.Users {
+	broadcasterIDs := make([]string, 0, len(users))
+	usersByID := make(map[string]string, len(users))
+	for _, user := range users {
 		broadcasterIDs = append(broadcasterIDs, user.ID)
 		usersByID[user.ID] = user.DisplayName
 	}

@@ -196,3 +196,20 @@ var ErrNoData = errors.New("collector returned no data")
 func IsNoDataError(err error) bool {
 	return err == ErrNoData
 }
+
+// getUsers resolves channel login names to Twitch user objects.
+// It returns an error if the API call fails or returns a non-200 status.
+func getUsers(client *helix.Client, logger *slog.Logger, logins []string) ([]helix.User, error) {
+	resp, err := client.GetUsers(&helix.UsersParams{
+		Logins: logins,
+	})
+	if err != nil {
+		logger.Error("Failed to collect users stats from Twitch helix API", "err", err)
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		logger.Error("Failed to collect users stats from Twitch helix API", "err", resp.ErrorMessage)
+		return nil, errors.New(resp.ErrorMessage)
+	}
+	return resp.Data.Users, nil
+}

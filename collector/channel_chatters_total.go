@@ -43,38 +43,23 @@ func (c ChannelChattersCollector) Update(ch chan<- prometheus.Metric) error {
 	}
 
 	// Get authenticated user ID to use as moderator ID
-	authUserResp, err := c.client.GetUsers(&helix.UsersParams{})
+	authUsers, err := getUsers(c.client, c.logger, nil)
 	if err != nil {
-		c.logger.Error("Failed to collect authenticated user from Twitch helix API", "err", err)
 		return err
 	}
 
-	if authUserResp.StatusCode != 200 {
-		c.logger.Error("Failed to collect authenticated user from Twitch helix API", "err", authUserResp.ErrorMessage)
-		return errors.New(authUserResp.ErrorMessage)
-	}
-
-	if len(authUserResp.Data.Users) == 0 {
+	if len(authUsers) == 0 {
 		return ErrNoData
 	}
 
-	moderatorID := authUserResp.Data.Users[0].ID
+	moderatorID := authUsers[0].ID
 
-	usersResp, err := c.client.GetUsers(&helix.UsersParams{
-		Logins: c.channelNames,
-	})
-
+	users, err := getUsers(c.client, c.logger, c.channelNames)
 	if err != nil {
-		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", err)
 		return err
 	}
 
-	if usersResp.StatusCode != 200 {
-		c.logger.Error("Failed to collect users stats from Twitch helix API", "err", usersResp.ErrorMessage)
-		return errors.New(usersResp.ErrorMessage)
-	}
-
-	for _, user := range usersResp.Data.Users {
+	for _, user := range users {
 		chattersResp, err := c.client.GetChannelChatChatters(&helix.GetChatChattersParams{
 			BroadcasterID: user.ID,
 			ModeratorID:   moderatorID,

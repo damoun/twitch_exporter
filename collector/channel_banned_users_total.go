@@ -48,31 +48,23 @@ func (c channelBannedUsersTotalCollector) Update(ch chan<- prometheus.Metric) er
 	}
 
 	for _, user := range users {
-		var total int
-		cursor := ""
-
-		for {
-			bansResp, err := c.client.GetBannedUsers(&helix.BannedUsersParams{
+		total, err := countPaginated(func(cursor string) (int, string, error) {
+			resp, err := c.client.GetBannedUsers(&helix.BannedUsersParams{
 				BroadcasterID: user.ID,
 				After:         cursor,
 			})
-
 			if err != nil {
 				c.logger.Error("Failed to collect banned users from Twitch helix API", "err", err)
-				return err
+				return 0, "", err
 			}
-
-			if bansResp.StatusCode != 200 {
-				c.logger.Error("Failed to collect banned users from Twitch helix API", "err", bansResp.ErrorMessage)
-				return errors.New(bansResp.ErrorMessage)
+			if resp.StatusCode != 200 {
+				c.logger.Error("Failed to collect banned users from Twitch helix API", "err", resp.ErrorMessage)
+				return 0, "", errors.New(resp.ErrorMessage)
 			}
-
-			total += len(bansResp.Data.Bans)
-
-			if bansResp.Data.Pagination.Cursor == "" {
-				break
-			}
-			cursor = bansResp.Data.Pagination.Cursor
+			return len(resp.Data.Bans), resp.Data.Pagination.Cursor, nil
+		})
+		if err != nil {
+			return err
 		}
 
 		ch <- c.channelBannedUsersTotal.mustNewConstMetric(float64(total), user.DisplayName)

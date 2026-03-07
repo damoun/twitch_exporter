@@ -61,31 +61,18 @@ func (c channelClipsTotalCollector) Update(ch chan<- prometheus.Metric) error {
 }
 
 func (c channelClipsTotalCollector) countClips(broadcasterID string) (int, error) {
-	total := 0
-	cursor := ""
-
-	for {
-		clipsResp, err := c.client.GetClips(&helix.ClipsParams{
+	return countPaginated(func(cursor string) (int, string, error) {
+		resp, err := c.client.GetClips(&helix.ClipsParams{
 			BroadcasterID: broadcasterID,
 			First:         100,
 			After:         cursor,
 		})
-
 		if err != nil {
-			return 0, err
+			return 0, "", err
 		}
-
-		if clipsResp.StatusCode != 200 {
-			return 0, errors.New(clipsResp.ErrorMessage)
+		if resp.StatusCode != 200 {
+			return 0, "", errors.New(resp.ErrorMessage)
 		}
-
-		total += len(clipsResp.Data.Clips)
-
-		if clipsResp.Data.Pagination.Cursor == "" {
-			break
-		}
-		cursor = clipsResp.Data.Pagination.Cursor
-	}
-
-	return total, nil
+		return len(resp.Data.Clips), resp.Data.Pagination.Cursor, nil
+	})
 }

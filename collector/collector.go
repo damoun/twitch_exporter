@@ -197,6 +197,30 @@ func IsNoDataError(err error) bool {
 	return err == ErrNoData
 }
 
+// countPaginated counts items across paginated API responses.
+// fetchPage is called with a cursor (empty string for the first page) and
+// returns the number of items on that page, the next cursor, and any error.
+func countPaginated(fetchPage func(cursor string) (count int, next string, err error)) (int, error) {
+	var total int
+	cursor := ""
+
+	for {
+		count, next, err := fetchPage(cursor)
+		if err != nil {
+			return 0, err
+		}
+
+		total += count
+
+		if next == "" {
+			break
+		}
+		cursor = next
+	}
+
+	return total, nil
+}
+
 // getUsers resolves channel login names to Twitch user objects.
 // It returns an error if the API call fails or returns a non-200 status.
 func getUsers(client *helix.Client, logger *slog.Logger, logins []string) ([]helix.User, error) {

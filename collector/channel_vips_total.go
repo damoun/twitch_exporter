@@ -48,32 +48,24 @@ func (c channelVipsTotalCollector) Update(ch chan<- prometheus.Metric) error {
 	}
 
 	for _, user := range users {
-		var total int
-		cursor := ""
-
-		for {
-			vipsResp, err := c.client.GetChannelVips(&helix.GetChannelVipsParams{
+		total, err := countPaginated(func(cursor string) (int, string, error) {
+			resp, err := c.client.GetChannelVips(&helix.GetChannelVipsParams{
 				BroadcasterID: user.ID,
 				First:         100,
 				After:         cursor,
 			})
-
 			if err != nil {
 				c.logger.Error("Failed to collect VIPs from Twitch helix API", "err", err)
-				return err
+				return 0, "", err
 			}
-
-			if vipsResp.StatusCode != 200 {
-				c.logger.Error("Failed to collect VIPs from Twitch helix API", "err", vipsResp.ErrorMessage)
-				return errors.New(vipsResp.ErrorMessage)
+			if resp.StatusCode != 200 {
+				c.logger.Error("Failed to collect VIPs from Twitch helix API", "err", resp.ErrorMessage)
+				return 0, "", errors.New(resp.ErrorMessage)
 			}
-
-			total += len(vipsResp.Data.ChannelsVips)
-
-			if vipsResp.Data.Pagination.Cursor == "" {
-				break
-			}
-			cursor = vipsResp.Data.Pagination.Cursor
+			return len(resp.Data.ChannelsVips), resp.Data.Pagination.Cursor, nil
+		})
+		if err != nil {
+			return err
 		}
 
 		ch <- c.channelVipsTotal.mustNewConstMetric(float64(total), user.DisplayName)

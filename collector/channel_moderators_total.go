@@ -48,32 +48,24 @@ func (c channelModeratorsTotalCollector) Update(ch chan<- prometheus.Metric) err
 	}
 
 	for _, user := range users {
-		var total int
-		cursor := ""
-
-		for {
-			moderatorsResp, err := c.client.GetModerators(&helix.GetModeratorsParams{
+		total, err := countPaginated(func(cursor string) (int, string, error) {
+			resp, err := c.client.GetModerators(&helix.GetModeratorsParams{
 				BroadcasterID: user.ID,
 				First:         100,
 				After:         cursor,
 			})
-
 			if err != nil {
 				c.logger.Error("Failed to collect moderators from Twitch helix API", "err", err)
-				return err
+				return 0, "", err
 			}
-
-			if moderatorsResp.StatusCode != 200 {
-				c.logger.Error("Failed to collect moderators from Twitch helix API", "err", moderatorsResp.ErrorMessage)
-				return errors.New(moderatorsResp.ErrorMessage)
+			if resp.StatusCode != 200 {
+				c.logger.Error("Failed to collect moderators from Twitch helix API", "err", resp.ErrorMessage)
+				return 0, "", errors.New(resp.ErrorMessage)
 			}
-
-			total += len(moderatorsResp.Data.Moderators)
-
-			if moderatorsResp.Data.Pagination.Cursor == "" {
-				break
-			}
-			cursor = moderatorsResp.Data.Pagination.Cursor
+			return len(resp.Data.Moderators), resp.Data.Pagination.Cursor, nil
+		})
+		if err != nil {
+			return err
 		}
 
 		ch <- c.channelModeratorsTotal.mustNewConstMetric(float64(total), user.DisplayName)

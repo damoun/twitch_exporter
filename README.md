@@ -31,6 +31,11 @@ make
 | twitch_channel_banned_users_total | The number of banned users of a channel. | username |
 | twitch_channel_bits_leaderboard | The bits leaderboard score for users on a channel. | username, user_name, user_id, rank |
 | twitch_channel_chatters_total | The number of users in a channel's chat (only non-zero when channel is live). | username |
+| twitch_channel_chat_emote_only | Whether emote-only mode is enabled in a channel's chat. | username |
+| twitch_channel_chat_followers_only | Whether followers-only mode is enabled in a channel's chat. | username |
+| twitch_channel_chat_subscriber_only | Whether subscriber-only mode is enabled in a channel's chat. | username |
+| twitch_channel_chat_slow_mode | Whether slow mode is enabled in a channel's chat. | username |
+| twitch_channel_chat_slow_mode_wait_seconds | The slow mode wait time in seconds for a channel's chat. | username |
 | twitch_channel_chat_messages_total | Is the total number of chat messages from a user within a channel. | username, chatter_username |
 
 ### Flags

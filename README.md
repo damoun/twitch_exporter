@@ -268,7 +268,5 @@ twitch:
     - surdaft
 ```
 
-> Note: You can add see more config options in charts/twitch-exporter/values.yaml.
-> Ingress is disabled by default, however you can enable it to allow for public
-> access to your exporter. Such as if you use a firewall and scrape from another
-> device.
+> Note: See more config options in `charts/twitch-exporter/values.yaml`.
+> Ingress is disabled by default but can be enabled for public access to your exporter.

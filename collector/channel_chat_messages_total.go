@@ -23,7 +23,7 @@ func (m MessageCounter) Add(username string, chatterUsername string) {
 	chatMessagesMutex.Lock()
 	defer chatMessagesMutex.Unlock()
 
-	chatMessages[username][chatterUsername]++
+	m[username][chatterUsername]++
 }
 
 func (m MessageCounter) Reset(username string, chatterUsername string) {
@@ -32,17 +32,17 @@ func (m MessageCounter) Reset(username string, chatterUsername string) {
 	chatMessagesMutex.Lock()
 	defer chatMessagesMutex.Unlock()
 
-	chatMessages[username][chatterUsername] = 0
+	m[username][chatterUsername] = 0
 }
 
 // ensure ensures that the username and chatterUsername exist in the map
 func (m MessageCounter) ensure(username string, chatterUsername string) {
-	if _, ok := chatMessages[username]; !ok {
-		chatMessages[username] = make(map[string]int)
+	if _, ok := m[username]; !ok {
+		m[username] = make(map[string]int)
 	}
 
-	if _, ok := chatMessages[username][chatterUsername]; !ok {
-		chatMessages[username][chatterUsername] = 0
+	if _, ok := m[username][chatterUsername]; !ok {
+		m[username][chatterUsername] = 0
 	}
 }
 
@@ -52,10 +52,10 @@ func (m MessageCounter) Get(username string, chatterUsername string) int {
 	chatMessagesMutex.Lock()
 	defer chatMessagesMutex.Unlock()
 
-	return chatMessages[username][chatterUsername]
+	return m[username][chatterUsername]
 }
 
-type ChannelChatMessagesCollector struct {
+type channelChatMessagesCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
@@ -116,7 +116,7 @@ func NewChannelChatMessagesCollector(logger *slog.Logger, client *helix.Client, 
 		return nil, err
 	}
 
-	c := ChannelChatMessagesCollector{
+	c := channelChatMessagesCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
@@ -130,13 +130,13 @@ func NewChannelChatMessagesCollector(logger *slog.Logger, client *helix.Client, 
 			prometheus.BuildFQName(namespace, "", "channel_chat_messages_total"),
 			"The number of chat messages sent in a channel.",
 			[]string{"username", "chatter_username"}, nil,
-		), prometheus.GaugeValue},
+		), prometheus.CounterValue},
 	}
 
 	return c, nil
 }
 
-func (c ChannelChatMessagesCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelChatMessagesCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}
@@ -144,7 +144,7 @@ func (c ChannelChatMessagesCollector) Update(ch chan<- prometheus.Metric) error 
 	// loop all the channels and push the counts
 	for username, count := range chatMessages {
 		for chatterUsername, count := range count {
-			ch <- prometheus.MustNewConstMetric(c.channelChatMessages.desc, prometheus.CounterValue, float64(count), username, chatterUsername)
+			ch <- c.channelChatMessages.mustNewConstMetric(float64(count), username, chatterUsername)
 		}
 	}
 

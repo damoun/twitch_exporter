@@ -1,7 +1,6 @@
 # Twitch Exporter
 
 [![CircleCI](https://circleci.com/gh/damoun/twitch_exporter/tree/master.svg?style=shield)][circleci]
-[![Docker Pulls](https://img.shields.io/docker/pulls/damoun/twitch-exporter.svg?maxAge=604800)][hub]
 [![Go Report Card](https://goreportcard.com/badge/github.com/damoun/twitch_exporter)][goreportcard]
 
 Export [Twitch](https://dev.twitch.tv/docs/api/reference) metrics to [Prometheus](https://github.com/prometheus/prometheus).
@@ -124,15 +123,15 @@ TODO
 
 ## Using Docker
 
-You can deploy this exporter using the [damoun/twitch-exporter](https://hub.docker.com/r/damoun/twitch-exporter/) Docker image.
+You can deploy this exporter using the `ghcr.io/damoun/twitch-exporter` Docker image.
 
 For example:
 
 ```bash
-docker pull damoun/twitch-exporter
+docker pull ghcr.io/damoun/twitch-exporter
 
 docker run -d -p 9184:9184 \
-        damoun/twitch-exporter \
+        ghcr.io/damoun/twitch-exporter \
         --twitch.client-id <secret> \
         --twitch.access-token <secret> \
         --twitch.channel dam0un
@@ -226,5 +225,4 @@ twitch:
 > device.
 
 [circleci]: https://circleci.com/gh/damoun/twitch_exporter
-[hub]: https://hub.docker.com/r/damoun/twitch-exporter/
 [goreportcard]: https://goreportcard.com/report/github.com/damoun/twitch_exporter

@@ -33,7 +33,7 @@ twitch:
   additionalParameters: []
 
 image:
-  repository: damoun/twitch-exporter
+  repository: ghcr.io/damoun/twitch-exporter
   pullPolicy: Always
   tag: "latest"
   pullSecrets: []

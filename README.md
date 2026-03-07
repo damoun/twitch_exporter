@@ -26,6 +26,7 @@ make
 | twitch_channel_subscription_points | The number of subscription points of a channel. | username |
 | twitch_channel_moderators_total | The number of moderators of a channel. | username |
 | twitch_channel_vips_total | The number of VIPs of a channel. | username |
+| twitch_channel_banned_users_total | The number of banned users of a channel. | username |
 | twitch_channel_bits_leaderboard | The bits leaderboard score for users on a channel. | username, user_name, user_id, rank |
 | twitch_channel_chatters_total | The number of users in a channel's chat (only non-zero when channel is live). | username |
 | twitch_channel_chat_messages_total | Is the total number of chat messages from a user within a channel. | username, chatter_username |

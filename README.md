@@ -21,6 +21,8 @@ make
 | twitch_channel_viewers_total | Is the total number of viewers on an online twitch channel. | username, game |
 | twitch_channel_followers_total | Is the total number of follower on a twitch channel. | username |
 | twitch_channel_clips_total | Is the total number of clips on a twitch channel. | username |
+| twitch_channel_info | Channel metadata (value=1). | username, game, title, language |
+| twitch_channel_delay_seconds | The stream delay in seconds for a channel. | username |
 | twitch_channel_emotes_total | The number of custom emotes of a channel. | username |
 | twitch_channel_subscribers_total | Is the total number of subscriber on a twitch channel. | username, tier, gifted |
 | twitch_channel_subscription_points | The number of subscription points of a channel. | username |

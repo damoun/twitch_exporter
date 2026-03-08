@@ -3,6 +3,16 @@ entries:
   twitch-exporter:
   - apiVersion: v2
     appVersion: 1.0.5
+    created: "2026-03-08T00:46:19.946542541Z"
+    description: A Helm chart for twitch_exporter
+    digest: c89c89ecfe28e82c61a5da6c447d7d2e6de6aa4df7f0dd585aaf8f55e74069ae
+    name: twitch-exporter
+    type: application
+    urls:
+    - https://github.com/damoun/twitch_exporter/releases/download/twitch-exporter-1.0.0/twitch-exporter-1.0.0.tgz
+    version: 1.0.0
+  - apiVersion: v2
+    appVersion: 1.0.5
     created: "2025-02-06T21:06:22.94322887Z"
     description: A Helm chart for twitch_exporter
     digest: 428d163b6dd81d89e1e044b22189e037e621ebc2b58da33541e1ffe17ce3b3e7
@@ -11,4 +21,4 @@ entries:
     urls:
     - https://github.com/damoun/twitch_exporter/releases/download/twitch-exporter-0.1.0/twitch-exporter-0.1.0.tgz
     version: 0.1.0
-generated: "2025-02-06T21:06:22.943235152Z"
+generated: "2026-03-08T00:46:19.946551688Z"

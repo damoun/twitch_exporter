@@ -51,11 +51,19 @@ serviceAccount:
 
 securityContext:
   runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
   fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
 
 containerSecurityContext:
+  runAsUser: 65534
+  runAsGroup: 65534
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
+  seccompProfile:
+    type: RuntimeDefault
   capabilities:
     drop:
       - ALL

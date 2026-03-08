@@ -38,40 +38,27 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          args: [
-            {{- if .Values.twitch.accessToken }}
-            "--twitch.access-token=$(TWITCH_ACCESS_TOKEN)",
-            {{ end -}}
-
-            {{- if .Values.twitch.refreshToken }}
-            "--twitch.refresh-token=$(TWITCH_REFRESH_TOKEN)",
-            {{ end -}}
-
-            {{- if .Values.twitch.clientId }}
-            "--twitch.client-id=$(TWITCH_CLIENT_ID)",
-            {{ end -}}
-
-            {{- if .Values.twitch.clientSecret }}
-            "--twitch.client-secret=$(TWITCH_CLIENT_SECRET)",
-            {{ end -}}
-
+          args:
+            - "--twitch.client-id=$(TWITCH_CLIENT_ID)"
+            - "--twitch.client-secret=$(TWITCH_CLIENT_SECRET)"
+            {{- if .Values.twitch.userToken }}
+            - "--twitch.access-token=$(TWITCH_ACCESS_TOKEN)"
+            - "--twitch.refresh-token=$(TWITCH_REFRESH_TOKEN)"
+            {{- end }}
             {{- range .Values.twitch.channels }}
-            "--twitch.channel={{ . }}",
-            {{ end -}}
-
+            - "--twitch.channel={{ . }}"
+            {{- end }}
             {{- if .Values.twitch.eventsub.enabled }}
-            "--eventsub.enabled",
-            "--eventsub.webhook-url=$(EVENTSUB_WEBHOOK_URL)",
-            "--eventsub.webhook-secret=$(EVENTSUB_WEBHOOK_SECRET)",
-            {{ end -}}
-
+            - "--eventsub.enabled"
+            - "--eventsub.webhook-url=$(EVENTSUB_WEBHOOK_URL)"
+            - "--eventsub.webhook-secret=$(EVENTSUB_WEBHOOK_SECRET)"
+            {{- end }}
             {{- range .Values.twitch.additionalParameters }}
-            "{{ . }}",
-            {{ end -}}
-          ]
+            - "{{ . }}"
+            {{- end }}
           envFrom:
             - secretRef:
-                name: {{ include "twitch_exporter.fullname" . }}
+                name: {{ include "twitch_exporter.secretName" . }}
           ports:
             - containerPort: {{ .Values.service.port }}
               name: http

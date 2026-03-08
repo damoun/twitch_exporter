@@ -51,6 +51,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Create the name of the secret to use
+*/}}
+{{- define "twitch_exporter.secretName" -}}
+{{- default (include "twitch_exporter.fullname" .) .Values.twitch.existingSecret }}
+{{- end }}
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "twitch_exporter.serviceAccountName" -}}

@@ -2,8 +2,8 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/damoun/twitch-exporter
-  pullPolicy: Always
-  tag: "latest"
+  pullPolicy: IfNotPresent
+  tag: ""
 
 imagePullSecrets: []
 
@@ -11,6 +11,10 @@ nameOverride: ""
 fullnameOverride: ""
 
 twitch:
+  # Use an existing Secret instead of creating one from values below.
+  # The Secret must contain the expected env var keys (e.g. TWITCH_CLIENT_ID).
+  existingSecret: ""
+
   # client-id is required at all times
   clientId: ""
 
@@ -22,17 +26,16 @@ twitch:
   # used.
   clientSecret: ""
 
-  # access-token & refresh-token are required for use with private data, such
-  # as sub counts.
+  # Set to true to enable user token mode (access-token & refresh-token).
+  # Required for private data such as sub counts.
+  # When using existingSecret, set this to true if the Secret contains
+  # TWITCH_ACCESS_TOKEN and TWITCH_REFRESH_TOKEN.
+  userToken: false
   accessToken: ""
   refreshToken: ""
 
   # channels is a list of channels to export metrics for.
-  channels:
-    - jordofthenorth
-    - timthetatman
-    - dam0un
-    - surdaft
+  channels: []
 
   # eventsub is disabled due to the need to expose the service
   eventsub:
@@ -55,7 +58,6 @@ securityContext:
   fsGroup: 65534
 
 containerSecurityContext:
-  runAsNonRoot: true
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
   capabilities:
@@ -101,9 +103,14 @@ networkPolicy:
 
 serviceMonitor:
   enabled: false
+  namespace: ""
   interval: ""
   scrapeTimeout: ""
+  honorLabels: false
+  jobLabel: ""
   labels: {}
+  relabelings: []
+  metricRelabelings: []
 
 resources:
   requests:

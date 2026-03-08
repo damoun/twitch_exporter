@@ -9,12 +9,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type channelModeratorsTotalCollector struct {
+type channelModeratorsCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
 
-	channelModeratorsTotal typedDesc
+	channelModerators typedDesc
 }
 
 func init() {
@@ -22,13 +22,13 @@ func init() {
 }
 
 func NewChannelModeratorsTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
-	c := channelModeratorsTotalCollector{
+	c := channelModeratorsCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
 
-		channelModeratorsTotal: typedDesc{prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "channel_moderators_total"),
+		channelModerators: typedDesc{prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "channel_moderators"),
 			"The number of moderators of a channel.",
 			[]string{"username"}, nil,
 		), prometheus.GaugeValue},
@@ -37,7 +37,7 @@ func NewChannelModeratorsTotalCollector(logger *slog.Logger, client *helix.Clien
 	return c, nil
 }
 
-func (c channelModeratorsTotalCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelModeratorsCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}
@@ -68,7 +68,7 @@ func (c channelModeratorsTotalCollector) Update(ch chan<- prometheus.Metric) err
 			return err
 		}
 
-		ch <- c.channelModeratorsTotal.mustNewConstMetric(float64(total), user.DisplayName)
+		ch <- c.channelModerators.mustNewConstMetric(float64(total), user.DisplayName)
 	}
 
 	return nil

@@ -9,20 +9,20 @@ Each collector can be toggled with `--[no-]collector.<name>` flags.
 | Collector | Default | Auth | Metrics |
 |---|---|---|---|
 | `channel_up` | enabled | app | `twitch_channel_up` (username, game) |
-| `channel_viewers_total` | enabled | app | `twitch_channel_viewers_total` (username, game) |
-| `channel_followers_total` | enabled | app | `twitch_channel_followers_total` (username) |
-| `channel_clips_total` | enabled | app | `twitch_channel_clips_total` (username) |
+| `channel_viewers_total` | enabled | app | `twitch_channel_viewers` (username, game) |
+| `channel_followers_total` | enabled | app | `twitch_channel_followers` (username) |
+| `channel_clips_total` | enabled | app | `twitch_channel_clips` (username) |
 | `channel_info` | enabled | app | `twitch_channel_info` (username, game, title, language), `twitch_channel_delay_seconds` (username) |
-| `channel_emotes_total` | enabled | app | `twitch_channel_emotes_total` (username) |
-| `channel_chat_settings` | enabled | app | `twitch_channel_chat_emote_only`, `_followers_only`, `_subscriber_only`, `_slow_mode`, `_slow_mode_wait_seconds` (username) |
-| `channel_subscribers_total` | disabled | user | `twitch_channel_subscribers_total` (username, tier, gifted) |
+| `channel_emotes_total` | enabled | app | `twitch_channel_emotes` (username) |
+| `channel_chat_settings` | enabled | app | `twitch_channel_chat_emote_only`, `twitch_channel_chat_followers_only`, `twitch_channel_chat_subscriber_only`, `twitch_channel_chat_slow_mode`, `twitch_channel_chat_slow_mode_wait_seconds` (username) |
+| `channel_subscribers_total` | disabled | user | `twitch_channel_subscribers` (username, tier, gifted) |
 | `channel_bits_leaderboard` | disabled | user | `twitch_channel_bits_leaderboard` (username, user_name, user_id, rank) |
-| `channel_chatters_total` | disabled | user | `twitch_channel_chatters_total` (username) |
+| `channel_chatters_total` | disabled | user | `twitch_channel_chatters` (username) |
 | `channel_goals` | disabled | user | `twitch_channel_goal_current`, `_goal_target` (username, type) |
-| `channel_vips_total` | disabled | user | `twitch_channel_vips_total` (username) |
-| `channel_banned_users_total` | disabled | user | `twitch_channel_banned_users_total` (username) |
-| `channel_charity` | disabled | user | `twitch_channel_charity_current_amount`, `_charity_target_amount` (username, currency) |
-| `channel_moderators_total` | disabled | user | `twitch_channel_moderators_total` (username) |
+| `channel_vips_total` | disabled | user | `twitch_channel_vips` (username) |
+| `channel_banned_users_total` | disabled | user | `twitch_channel_banned_users` (username) |
+| `channel_charity` | disabled | user | `twitch_channel_charity_current_amount`, `twitch_channel_charity_target_amount` (username, currency) |
+| `channel_moderators_total` | disabled | user | `twitch_channel_moderators` (username) |
 | `channel_chat_messages_total` | disabled | user + EventSub | `twitch_channel_chat_messages_total` (username, chatter_username) |
 
 ## Flags
@@ -100,6 +100,7 @@ You can read more about the process [here](https://dev.twitch.tv/docs/chat/authe
 ```bash
 make build
 ```
+
 
 ### Run with app token (basic collectors)
 

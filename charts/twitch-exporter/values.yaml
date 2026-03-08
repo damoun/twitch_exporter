@@ -35,7 +35,7 @@ twitch:
 image:
   repository: ghcr.io/damoun/twitch-exporter
   pullPolicy: Always
-  tag: "latest"
+  tag: ""
   pullSecrets: []
 
 serviceAccount:
@@ -51,7 +51,13 @@ ingress:
   enabled: false
   annotations: {}
 
-resources: {}
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
 
 podLabels: {}
 

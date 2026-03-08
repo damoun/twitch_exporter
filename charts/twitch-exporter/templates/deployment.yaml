@@ -25,17 +25,27 @@ spec:
       imagePullSecrets:
         {{- toYaml .Values.image.pullSecrets | nindent 12 }}
       {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
               drop:
                 - ALL
+            seccompProfile:
+              type: RuntimeDefault
           args: [
             {{- if .Values.twitch.accessToken }}
             # access token is provided as a secret

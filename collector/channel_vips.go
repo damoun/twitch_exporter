@@ -9,12 +9,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type channelVipsTotalCollector struct {
+type channelVipsCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
 
-	channelVipsTotal typedDesc
+	channelVips typedDesc
 }
 
 func init() {
@@ -22,13 +22,13 @@ func init() {
 }
 
 func NewChannelVipsTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
-	c := channelVipsTotalCollector{
+	c := channelVipsCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
 
-		channelVipsTotal: typedDesc{prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "channel_vips_total"),
+		channelVips: typedDesc{prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "channel_vips"),
 			"The number of VIPs of a channel.",
 			[]string{"username"}, nil,
 		), prometheus.GaugeValue},
@@ -37,7 +37,7 @@ func NewChannelVipsTotalCollector(logger *slog.Logger, client *helix.Client, _ *
 	return c, nil
 }
 
-func (c channelVipsTotalCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelVipsCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}
@@ -68,7 +68,7 @@ func (c channelVipsTotalCollector) Update(ch chan<- prometheus.Metric) error {
 			return err
 		}
 
-		ch <- c.channelVipsTotal.mustNewConstMetric(float64(total), user.DisplayName)
+		ch <- c.channelVips.mustNewConstMetric(float64(total), user.DisplayName)
 	}
 
 	return nil

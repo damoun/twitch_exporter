@@ -1,2 +1,6 @@
 # CPU limit not set — intentional, CPU limits cause throttling
 KSV011
+# Namespace is set at install time, not in the chart
+KSV110
+# Container image registry is user-configurable via image.repository
+KSV125

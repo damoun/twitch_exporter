@@ -1,2 +1,0 @@
-misconfigurations:
-  - id: KSV011 # CPU limit not set — intentional, CPU limits cause throttling

@@ -29,7 +29,6 @@ jobs:
           scan-type: fs
           scan-ref: charts/
           scanners: misconfig
-          trivyignores: .trivyignore.yaml
           format: sarif
           output: trivy-results.sarif
 

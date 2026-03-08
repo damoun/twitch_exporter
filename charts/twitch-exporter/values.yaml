@@ -11,40 +11,36 @@ nameOverride: ""
 fullnameOverride: ""
 
 twitch:
-  # Use an existing Secret instead of creating one from values below.
-  # The Secret must contain the expected env var keys (e.g. TWITCH_CLIENT_ID).
+  # Name of an existing Secret containing Twitch credentials.
+  # Expected keys: TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, and optionally
+  # TWITCH_ACCESS_TOKEN, TWITCH_REFRESH_TOKEN, EVENTSUB_WEBHOOK_URL, EVENTSUB_WEBHOOK_SECRET.
+  # When set, the chart does not create its own Secret.
   existingSecret: ""
 
-  # client-id is required at all times
+  # Required. Twitch application client ID.
   clientId: ""
 
-  # client secret is preferred for use without private data, as it uses no oauth
-  # flow to grant access to the API. Endpoints such as sub counts are not with
-  # this method.
-  #
-  # if both client-secret and access-token are provided, client-secret will be
-  # used.
+  # Required. Twitch application client secret.
+  # Sufficient for public data (viewers, followers, clips).
   clientSecret: ""
 
-  # Set to true to enable user token mode (access-token & refresh-token).
-  # Required for private data such as sub counts.
+  # Enable user token mode for private data (subscribers, bits, chat messages).
   # When using existingSecret, set this to true if the Secret contains
   # TWITCH_ACCESS_TOKEN and TWITCH_REFRESH_TOKEN.
   userToken: false
   accessToken: ""
   refreshToken: ""
 
-  # channels is a list of channels to export metrics for.
+  # Twitch channels to export metrics for.
   channels: []
 
-  # eventsub is disabled due to the need to expose the service
+  # EventSub requires the service to be reachable via a public URL.
   eventsub:
     enabled: false
     webhookURL: ""
     webhookSecret: ""
 
-  # additionalParameters is a list of additional parameters to pass to the
-  # exporter, such as --collector.channel_chat_messages_total
+  # Extra CLI flags passed to the exporter (e.g. --collector.channel_chat_messages_total).
   additionalParameters: []
 
 serviceAccount:
@@ -104,7 +100,7 @@ networkPolicy:
   allowNamespaces: []
   #  - monitoring
   #  - traefik
-  # Custom ingress from rules (podSelector, namespaceSelector, ipBlock)
+  # Additional ingress sources (podSelector, namespaceSelector, ipBlock)
   ingressFrom: []
   #  - ipBlock:
   #      cidr: 10.0.0.0/8

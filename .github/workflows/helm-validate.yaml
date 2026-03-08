@@ -1,0 +1,28 @@
+name: Helm Validate
+
+on:
+  push:
+    paths:
+      - "charts/**"
+  pull_request:
+    paths:
+      - "charts/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+
+      - name: Helm lint
+        run: helm lint charts/twitch-exporter/
+
+      - name: Helm template dry-run
+        run: helm template test charts/twitch-exporter/ --set twitch.clientId=test --set twitch.clientSecret=test

@@ -1,63 +1,152 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/damoun/twitch-exporter
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
 twitch:
-  # client-id is required at all times
+  # Name of an existing Secret containing Twitch credentials.
+  # Expected keys: TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET, and optionally
+  # TWITCH_ACCESS_TOKEN, TWITCH_REFRESH_TOKEN, EVENTSUB_WEBHOOK_URL, EVENTSUB_WEBHOOK_SECRET.
+  # When set, the chart does not create its own Secret.
+  existingSecret: ""
+
+  # Required. Twitch application client ID.
   clientId: ""
 
-  # client secret is preferred for use without private data, as it uses no oauth
-  # flow to grant access to the API. Endpoints such as sub counts are not with
-  # this method.
-  #
-  # if both client-secret and access-token are provided, client-secret will be
-  # used.
+  # Required. Twitch application client secret.
+  # Sufficient for public data (viewers, followers, clips).
   clientSecret: ""
 
-  # access-token & refresh-token are required for use with private data, such
-  # as sub counts.
+  # Enable user token mode for private data (subscribers, bits, chat messages).
+  # When using existingSecret, set this to true if the Secret contains
+  # TWITCH_ACCESS_TOKEN and TWITCH_REFRESH_TOKEN.
+  userToken: false
   accessToken: ""
   refreshToken: ""
 
-  # channels is a list of channels to export metrics for.
-  channels:
-    - jordofthenorth
-    - timthetatman
-    - dam0un
-    - surdaft
+  # Twitch channels to export metrics for.
+  channels: []
 
-  # eventsub is disabled due to the need to expose the service
+  # EventSub requires the service to be reachable via a public URL.
   eventsub:
     enabled: false
     webhookURL: ""
     webhookSecret: ""
 
-  # additionalParameters is a list of additional parameters to pass to the
-  # exporter, such as --collector.channel_chat_messages_total
+  # Extra CLI flags passed to the exporter (e.g. --collector.channel_chat_messages_total).
   additionalParameters: []
-
-image:
-  repository: ghcr.io/damoun/twitch-exporter
-  pullPolicy: Always
-  tag: ""
-  pullSecrets: []
 
 serviceAccount:
   create: true
   automount: true
+  annotations: {}
+  name: ""
+
+securityContext:
+  runAsNonRoot: true
+  fsGroup: 65534
+
+containerSecurityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
 
 service:
   type: ClusterIP
   port: 9184
 
-# ingress would be required if using eventsub
 ingress:
   enabled: false
+  className: ""
   annotations: {}
+  hosts: []
+  #  - host: twitch-exporter.example.com
+  #    paths:
+  #      - path: /
+  #        pathType: Prefix
+  tls: []
+  #  - secretName: twitch-exporter-tls
+  #    hosts:
+  #      - twitch-exporter.example.com
+
+gateway:
+  enabled: false
+  parentRefs: []
+  #  - name: my-gateway
+  #    namespace: default
+  hostnames: []
+  rules: []
+  #  - matches:
+  #      - path:
+  #          type: PathPrefix
+  #          value: /
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+networkPolicy:
+  enabled: false
+  # Allow ingress from these namespaces (e.g. monitoring, traefik)
+  allowNamespaces: []
+  #  - monitoring
+  #  - traefik
+  # Additional ingress sources (podSelector, namespaceSelector, ipBlock)
+  ingressFrom: []
+  #  - ipBlock:
+  #      cidr: 10.0.0.0/8
+  egress:
+    enabled: false
+    rules:
+      # DNS resolution (kube-system)
+      - to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: kube-system
+        ports:
+          - port: 53
+            protocol: UDP
+          - port: 53
+            protocol: TCP
+      # HTTPS (Twitch API)
+      - ports:
+          - port: 443
+            protocol: TCP
+
+serviceMonitor:
+  enabled: false
+  namespace: ""
+  interval: ""
+  scrapeTimeout: ""
+  honorLabels: false
+  jobLabel: ""
+  labels: {}
+  relabelings: []
+  metricRelabelings: []
 
 resources:
   requests:
     cpu: 50m
     memory: 64Mi
   limits:
-    cpu: 200m
     memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+topologySpreadConstraints: []
 
 podLabels: {}
 

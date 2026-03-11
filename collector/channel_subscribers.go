@@ -34,7 +34,7 @@ func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Clien
 		channelNames: channelNames,
 
 		channelSubscribersTotal: typedDesc{prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "channel_subscribers_total"),
+			prometheus.BuildFQName(namespace, "", "channel_subscribers"),
 			"The number of subscriber of a channel.",
 			[]string{"username", "tier", "gifted"}, nil,
 		), prometheus.GaugeValue},

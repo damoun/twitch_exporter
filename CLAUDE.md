@@ -8,11 +8,10 @@ Twitch Exporter is a Prometheus exporter for Twitch metrics, built following the
 
 ## Build & Test Commands
 
-- **Build**: `make build` (uses [promu](https://github.com/prometheus/promu) under the hood)
+- **Build**: `make build`
 - **Test**: `make test` (or `make test-short`)
 - **Lint**: `make lint` (uses golangci-lint)
 - **Format**: `make format`
-- **Cross-build**: `make promu-build` (multi-arch via promu)
 - **All checks**: `make` (runs style, lint, build, test)
 - **Run single test**: `go test ./collector/ -run TestName`
 
@@ -51,15 +50,7 @@ Both modes auto-refresh tokens every 24 hours.
 
 ### Existing Collectors
 
-| Collector | File | Default | Auth |
-|---|---|---|---|
-| `channel_up` | `channel_up.go` | enabled | app token |
-| `channel_viewers_total` | `channel_viewers_total.go` | enabled | app token |
-| `channel_followers_total` | `channel_followers_total.go` | enabled | app token |
-| `channel_subscribers_total` | `channel_subscribers_total.go` | disabled | user token |
-| `channel_chat_messages_total` | `channel_chat_messages_total.go` | disabled | user token + EventSub |
-| `channel_bits_leaderboard` | `channel_bits_leaderboard.go` | disabled | user token |
-| `channel_clips_total` | `channel_clips_total.go` | enabled | app token |
+See the [README](README.md#collectors) for the full collector list with metrics and auth requirements.
 
 ### Deployment
 

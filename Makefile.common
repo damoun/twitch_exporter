@@ -22,9 +22,6 @@
 # 	@echo ">> Running customTarget"
 #
 
-# Ensure GOBIN is not set during build so that promu is installed to the correct path
-unexport GOBIN
-
 GO           ?= go
 GOFMT        ?= $(GO)fmt
 FIRST_GOPATH := $(firstword $(subst :, ,$(shell $(GO) env GOPATH)))
@@ -36,7 +33,6 @@ GO_VERSION        ?= $(shell $(GO) version)
 GO_VERSION_NUMBER ?= $(word 3, $(GO_VERSION))
 PRE_GO_111        ?= $(shell echo $(GO_VERSION_NUMBER) | grep -E 'go1\.(10|[0-9])\.')
 
-PROMU        := $(FIRST_GOPATH)/bin/promu
 pkgs          = ./...
 
 ifeq (arm, $(GOHOSTARCH))
@@ -54,9 +50,6 @@ ifneq ($(shell command -v gotestsum 2> /dev/null),)
 	GOTEST := gotestsum --junitfile $(GOTEST_DIR)/unit-tests.xml --
 endif
 endif
-
-PROMU_VERSION ?= 0.17.0
-PROMU_URL     := https://github.com/prometheus/promu/releases/download/v$(PROMU_VERSION)/promu-$(PROMU_VERSION).$(GO_BUILD_PLATFORM).tar.gz
 
 SKIP_GOLANGCI_LINT :=
 GOLANGCI_LINT :=
@@ -199,14 +192,15 @@ common-unused:
 	@git diff --exit-code -- go.sum go.mod
 
 .PHONY: common-build
-common-build: promu
+common-build:
 	@echo ">> building binaries"
-	$(PROMU) build --prefix $(PREFIX) $(PROMU_BINARIES)
-
-.PHONY: common-tarball
-common-tarball: promu
-	@echo ">> building release tarball"
-	$(PROMU) tarball --prefix $(PREFIX) $(BIN_DIR)
+	$(GO) build -a -tags netgo \
+		-ldflags "-X github.com/prometheus/common/version.Version=$(shell git describe --tags --always --dirty) \
+		          -X github.com/prometheus/common/version.Revision=$(shell git rev-parse HEAD) \
+		          -X github.com/prometheus/common/version.Branch=$(shell git rev-parse --abbrev-ref HEAD) \
+		          -X github.com/prometheus/common/version.BuildUser=$(shell id -un)@$(shell hostname) \
+		          -X github.com/prometheus/common/version.BuildDate=$(shell date +%Y%m%d-%H:%M:%S)" \
+		-o $(PREFIX)/$(BINARY_NAME) $(GOOPTS) .
 
 .PHONY: common-docker-repo-name
 common-docker-repo-name:
@@ -237,16 +231,6 @@ $(TAG_DOCKER_ARCHS): common-docker-tag-latest-%:
 common-docker-manifest:
 	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest create -a "$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME):$(SANITIZED_DOCKER_IMAGE_TAG)" $(foreach ARCH,$(DOCKER_ARCHS),$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME)-linux-$(ARCH):$(SANITIZED_DOCKER_IMAGE_TAG))
 	DOCKER_CLI_EXPERIMENTAL=enabled docker manifest push "$(DOCKER_REPO)/$(DOCKER_IMAGE_NAME):$(SANITIZED_DOCKER_IMAGE_TAG)"
-
-.PHONY: promu
-promu: $(PROMU)
-
-$(PROMU):
-	$(eval PROMU_TMP := $(shell mktemp -d))
-	curl -s -L $(PROMU_URL) | tar -xvzf - -C $(PROMU_TMP)
-	mkdir -p $(FIRST_GOPATH)/bin
-	cp $(PROMU_TMP)/promu-$(PROMU_VERSION).$(GO_BUILD_PLATFORM)/promu $(FIRST_GOPATH)/bin/promu
-	rm -r $(PROMU_TMP)
 
 .PHONY: proto
 proto:

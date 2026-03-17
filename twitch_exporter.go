@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
@@ -199,16 +200,22 @@ func main() {
 		ErrorHandling: promhttp.ContinueOnError,
 	}))
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte(`<html>
+	landingTmpl := template.Must(template.New("landing").Parse(`<html>
              <head><title>Twitch Exporter</title></head>
              <body>
              <h1>Twitch Exporter</h1>
-             <p><a href='` + *metricsPath + `'>Metrics</a></p>
+             <p><a href='{{.MetricsPath}}'>Metrics</a></p>
              <h2>Build</h2>
-             <pre>` + version.Info() + ` ` + version.BuildContext() + `</pre>
+             <pre>{{.VersionInfo}} {{.BuildContext}}</pre>
              </body>
              </html>`))
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		err := landingTmpl.Execute(w, map[string]string{
+			"MetricsPath":  *metricsPath,
+			"VersionInfo":  version.Info(),
+			"BuildContext": version.BuildContext(),
+		})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

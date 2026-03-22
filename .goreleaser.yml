@@ -82,4 +82,3 @@ changelog:
   filters:
     exclude:
       - "^docs:"
-      - "^chore:"

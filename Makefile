@@ -1,12 +1,35 @@
-DOCKER_REPO  ?= ghcr.io/damoun
+GO     ?= go
+GOFMT  ?= $(GO)fmt
+pkgs   = ./...
 
-include Makefile.common
+.PHONY: all
+all: style lint build test
 
-DOCKER_IMAGE_NAME ?= twitch-exporter
+.PHONY: build
+build:
+	goreleaser build --snapshot --clean --single-target
 
-docker:
-	docker buildx build --load -t $(DOCKER_REPO)/$(DOCKER_IMAGE_NAME):$(SANITIZED_DOCKER_IMAGE_TAG) .
+.PHONY: test
+test:
+	$(GO) test -race $(pkgs)
 
-promu-build:
-	@echo ">> running promu crossbuild -v"
-	promu crossbuild -v
+.PHONY: test-short
+test-short:
+	$(GO) test -short $(pkgs)
+
+.PHONY: format
+format:
+	$(GO) fmt $(pkgs)
+
+.PHONY: style
+style:
+	@echo ">> checking code style"
+	@fmtRes=$$($(GOFMT) -d $$(find . -path ./vendor -prune -o -name '*.go' -print)); \
+	if [ -n "$${fmtRes}" ]; then \
+		echo "gofmt checking failed!"; echo "$${fmtRes}"; \
+		exit 1; \
+	fi
+
+.PHONY: lint
+lint:
+	golangci-lint run $(pkgs)

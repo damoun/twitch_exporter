@@ -1,5 +1,6 @@
 ---
 name: Build
+
 on:
   pull_request:
     branches:
@@ -8,7 +9,7 @@ on:
 permissions: {}
 
 jobs:
-  docker:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,6 +17,15 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
-      - run: docker buildx build --platform linux/amd64 --load -t twitch-exporter:test .
-      - run: docker run twitch-exporter:test --help
+
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+
+      - uses: goreleaser/goreleaser-action@9ed2f89a662bf1735a48bc8557fd212fa902bebf # v6.3.0
+        with:
+          version: latest
+          args: build --snapshot --clean
+
+      - name: Verify version output
+        run: ./dist/twitch_exporter_linux_amd64_v1/twitch_exporter --version

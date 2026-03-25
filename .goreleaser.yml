@@ -75,7 +75,6 @@ archives:
   - format: tar.gz
     files:
       - LICENSE
-      - NOTICE
 
 changelog:
   sort: asc

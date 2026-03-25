@@ -26,53 +26,20 @@ builds:
       - goos: darwin
         goarch: arm
 
-dockers:
-  - id: amd64
-    goos: linux
-    goarch: amd64
-    image_templates:
-      - "ghcr.io/damoun/twitch-exporter:{{ .Version }}-amd64"
-      - "ghcr.io/damoun/twitch-exporter:latest-amd64"
-    dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/amd64"
-
-  - id: arm64
-    goos: linux
-    goarch: arm64
-    image_templates:
-      - "ghcr.io/damoun/twitch-exporter:{{ .Version }}-arm64"
-      - "ghcr.io/damoun/twitch-exporter:latest-arm64"
-    dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/arm64"
-
-  - id: armv7
-    goos: linux
-    goarch: arm
-    goarm: "7"
-    image_templates:
-      - "ghcr.io/damoun/twitch-exporter:{{ .Version }}-armv7"
-      - "ghcr.io/damoun/twitch-exporter:latest-armv7"
-    dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/arm/v7"
-
-docker_manifests:
-  - name_template: "ghcr.io/damoun/twitch-exporter:{{ .Version }}"
-    image_templates:
-      - "ghcr.io/damoun/twitch-exporter:{{ .Version }}-amd64"
-      - "ghcr.io/damoun/twitch-exporter:{{ .Version }}-arm64"
-      - "ghcr.io/damoun/twitch-exporter:{{ .Version }}-armv7"
-
-  - name_template: "ghcr.io/damoun/twitch-exporter:latest"
-    image_templates:
-      - "ghcr.io/damoun/twitch-exporter:latest-amd64"
-      - "ghcr.io/damoun/twitch-exporter:latest-arm64"
-      - "ghcr.io/damoun/twitch-exporter:latest-armv7"
+dockers_v2:
+  - images:
+      - "ghcr.io/damoun/twitch-exporter"
+    tags:
+      - "{{ .Version }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+      - linux/arm/v7
 
 archives:
-  - format: tar.gz
+  - formats:
+      - tar.gz
     files:
       - LICENSE
 

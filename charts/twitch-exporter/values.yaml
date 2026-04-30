@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/damoun/twitch-exporter
   pullPolicy: IfNotPresent
-  tag: ""
+  tag: "@sha256:06f00e97fd0a4ac8a83592f5aaf9d60a05825c597a2ed23902f1a1b64aa9cd99"
 
 imagePullSecrets: []
 

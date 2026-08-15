@@ -257,11 +257,33 @@ func parseListParams(query url.Values, keys ...string) []string {
 	return out
 }
 
+// filterOut returns the elements of list not present in remove, preserving
+// order and de-duplicating removals.
+func filterOut(list, remove []string) []string {
+	if len(remove) == 0 {
+		return list
+	}
+	excluded := make(map[string]bool, len(remove))
+	for _, r := range remove {
+		excluded[r] = true
+	}
+	out := make([]string, 0, len(list))
+	for _, item := range list {
+		if !excluded[item] {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
 // probeHandler serves the multi-target /probe endpoint. Each request specifies
 // the channels to scrape via the "channels" parameter and, optionally, the
 // collectors to run via the "collector"/"collectors" parameter. When no
-// collector is requested, every app-token collector is used. Only
-// non-privileged (app-token) collectors are permitted.
+// collector is requested, every app-token collector is used. Collectors named
+// in the "exclude"/"exclude_collector" parameter are then removed, which is
+// handy for dropping high-cardinality collectors (e.g. channel_info) without
+// having to enumerate every other collector. Only non-privileged (app-token)
+// collectors are permitted.
 func probeHandler(logger *slog.Logger, client *helix.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
@@ -275,6 +297,12 @@ func probeHandler(logger *slog.Logger, client *helix.Client) http.HandlerFunc {
 		requested := parseListParams(query, "collector", "collectors")
 		if len(requested) == 0 {
 			requested = collector.ProbeableCollectors()
+		}
+
+		requested = filterOut(requested, parseListParams(query, "exclude", "exclude_collector"))
+		if len(requested) == 0 {
+			http.Error(w, "no collectors selected: all requested collectors were excluded", http.StatusBadRequest)
+			return
 		}
 
 		exporter, err := collector.NewProbeExporter(logger, client, channels, requested)

@@ -41,6 +41,10 @@ Parameters:
 * __`collector`:__ (optional) the collector(s) to run. Repeatable or
   comma-separated. When omitted, every app-token collector runs. Requesting a
   user-token collector (or an unknown name) returns `400 Bad Request`.
+* __`exclude`:__ (optional) collector(s) to drop from the selected set.
+  Repeatable or comma-separated. Applied after `collector` (or the default
+  set), so you can run "everything except X" without listing every collector -
+  useful for excluding high-cardinality collectors such as `channel_info`.
 
 ```bash
 # scrape two channels with a specific collector
@@ -48,6 +52,9 @@ curl 'http://localhost:9184/probe?channels=twitch,shroud&collector=channel_up'
 
 # scrape one channel with all app-token collectors
 curl 'http://localhost:9184/probe?channels=twitch'
+
+# all app-token collectors except the high-cardinality channel_info
+curl 'http://localhost:9184/probe?channels=twitch&exclude=channel_info'
 ```
 
 Channel lookups are batched into grouped Helix requests (up to 100 channels per

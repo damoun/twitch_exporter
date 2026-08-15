@@ -58,7 +58,7 @@ func (c channelInfoCollector) Update(ch chan<- prometheus.Metric) error {
 	usersByID := make(map[string]string, len(users))
 	for _, user := range users {
 		broadcasterIDs = append(broadcasterIDs, user.ID)
-		usersByID[user.ID] = user.DisplayName
+		usersByID[user.ID] = user.Login
 	}
 
 	// GetChannelInformation is batched into grouped requests of at most

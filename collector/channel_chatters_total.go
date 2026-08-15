@@ -75,7 +75,7 @@ func (c channelChattersCollector) Update(ch chan<- prometheus.Metric) error {
 			return errors.New(chattersResp.ErrorMessage)
 		}
 
-		ch <- c.channelChattersTotal.mustNewConstMetric(float64(chattersResp.Data.Total), user.DisplayName)
+		ch <- c.channelChattersTotal.mustNewConstMetric(float64(chattersResp.Data.Total), user.Login)
 	}
 
 	return nil

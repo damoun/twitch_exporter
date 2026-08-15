@@ -68,7 +68,7 @@ func (c channelVipsTotalCollector) Update(ch chan<- prometheus.Metric) error {
 			return err
 		}
 
-		ch <- c.channelVipsTotal.mustNewConstMetric(float64(total), user.DisplayName)
+		ch <- c.channelVipsTotal.mustNewConstMetric(float64(total), user.Login)
 	}
 
 	return nil

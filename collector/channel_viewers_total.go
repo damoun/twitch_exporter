@@ -55,7 +55,7 @@ func (c channelViewersTotalCollector) Update(ch chan<- prometheus.Metric) error 
 		}
 
 		for _, s := range streamsResp.Data.Streams {
-			ch <- c.channelViewersTotal.mustNewConstMetric(float64(s.ViewerCount), s.UserName, s.GameName)
+			ch <- c.channelViewersTotal.mustNewConstMetric(float64(s.ViewerCount), s.UserLogin, s.GameName)
 		}
 	}
 

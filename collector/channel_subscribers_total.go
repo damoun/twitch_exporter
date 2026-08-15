@@ -91,14 +91,14 @@ func (c channelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 		}
 
 		for tier, counter := range giftedSubCounter {
-			ch <- c.channelSubscribersTotal.mustNewConstMetric(float64(counter), user.DisplayName, tier, giftedSub)
+			ch <- c.channelSubscribersTotal.mustNewConstMetric(float64(counter), user.Login, tier, giftedSub)
 		}
 
 		for tier, counter := range subCounter {
-			ch <- c.channelSubscribersTotal.mustNewConstMetric(float64(counter), user.DisplayName, tier, notGiftedSub)
+			ch <- c.channelSubscribersTotal.mustNewConstMetric(float64(counter), user.Login, tier, notGiftedSub)
 		}
 
-		ch <- c.channelSubscriptionPoints.mustNewConstMetric(float64(subscriptionsResp.Data.Points), user.DisplayName)
+		ch <- c.channelSubscriptionPoints.mustNewConstMetric(float64(subscriptionsResp.Data.Points), user.Login)
 	}
 
 	return nil

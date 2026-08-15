@@ -54,7 +54,7 @@ func (c channelClipsTotalCollector) Update(ch chan<- prometheus.Metric) error {
 			return err
 		}
 
-		ch <- c.channelClips.mustNewConstMetric(float64(total), user.DisplayName)
+		ch <- c.channelClips.mustNewConstMetric(float64(total), user.Login)
 	}
 
 	return nil

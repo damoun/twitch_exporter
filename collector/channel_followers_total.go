@@ -62,7 +62,7 @@ func (c channelFollowersTotalCollector) Update(ch chan<- prometheus.Metric) erro
 			return errors.New(usersFollowsResp.ErrorMessage)
 		}
 
-		ch <- c.channelFollowers.mustNewConstMetric(float64(usersFollowsResp.Data.Total), user.DisplayName)
+		ch <- c.channelFollowers.mustNewConstMetric(float64(usersFollowsResp.Data.Total), user.Login)
 	}
 
 	return nil

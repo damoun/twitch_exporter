@@ -6,6 +6,10 @@ Export [Twitch](https://dev.twitch.tv/docs/api/reference) metrics to [Prometheus
 
 Each collector can be toggled with `--[no-]collector.<name>` flags.
 
+The `username` label is populated with the Twitch **login** (the stable,
+lower-cased account name) rather than the display name, so a streamer changing
+the capitalisation of their display name does not spawn a new time series.
+
 | Collector | Default | Auth | Metrics |
 |---|---|---|---|
 | `channel_up` | enabled | app | `twitch_channel_up` (username, game) |

@@ -2,6 +2,7 @@ package collector
 
 import (
 	"log/slog"
+	"strings"
 
 	"github.com/damoun/twitch_exporter/internal/eventsub"
 	"github.com/nicklaw5/helix/v2"
@@ -56,20 +57,24 @@ func (c channelUpCollector) Update(ch chan<- prometheus.Metric) error {
 		}
 
 		for _, s := range streamsResp.Data.Streams {
-			liveGames[s.UserName] = s.GameName
+			liveGames[strings.ToLower(s.UserLogin)] = s.GameName
 		}
 	}
 
 	for _, n := range c.channelNames {
+		// Label with the login (lower-cased): stable across display-name case
+		// changes and matches the canonical login the API returns.
+		login := strings.ToLower(n)
+
 		state := 0
 		game := ""
 
-		if g, ok := liveGames[n]; ok {
+		if g, ok := liveGames[login]; ok {
 			state = 1
 			game = g
 		}
 
-		ch <- c.channelUp.mustNewConstMetric(float64(state), n, game)
+		ch <- c.channelUp.mustNewConstMetric(float64(state), login, game)
 	}
 
 	return nil

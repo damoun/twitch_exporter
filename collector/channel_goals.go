@@ -70,8 +70,8 @@ func (c channelGoalsCollector) Update(ch chan<- prometheus.Metric) error {
 		}
 
 		for _, goal := range goalsResp.Data.Goals {
-			ch <- c.goalCurrent.mustNewConstMetric(float64(goal.CurrentAmount), user.DisplayName, goal.Type)
-			ch <- c.goalTarget.mustNewConstMetric(float64(goal.TargetAmount), user.DisplayName, goal.Type)
+			ch <- c.goalCurrent.mustNewConstMetric(float64(goal.CurrentAmount), user.Login, goal.Type)
+			ch <- c.goalTarget.mustNewConstMetric(float64(goal.TargetAmount), user.Login, goal.Type)
 		}
 	}
 

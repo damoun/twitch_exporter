@@ -68,7 +68,7 @@ func (c channelModeratorsTotalCollector) Update(ch chan<- prometheus.Metric) err
 			return err
 		}
 
-		ch <- c.channelModeratorsTotal.mustNewConstMetric(float64(total), user.DisplayName)
+		ch <- c.channelModeratorsTotal.mustNewConstMetric(float64(total), user.Login)
 	}
 
 	return nil

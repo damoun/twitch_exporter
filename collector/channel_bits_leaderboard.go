@@ -18,7 +18,7 @@ type channelBitsLeaderboardCollector struct {
 }
 
 func init() {
-	registerCollector("channel_bits_leaderboard", defaultDisabled, NewChannelBitsLeaderboardCollector)
+	registerCollector("channel_bits_leaderboard", defaultDisabled, AuthUser, NewChannelBitsLeaderboardCollector)
 }
 
 func NewChannelBitsLeaderboardCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, _ ChannelNames) (Collector, error) {

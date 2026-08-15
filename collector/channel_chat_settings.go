@@ -22,7 +22,7 @@ type channelChatSettingsCollector struct {
 }
 
 func init() {
-	registerCollector("channel_chat_settings", defaultEnabled, NewChannelChatSettingsCollector)
+	registerCollector("channel_chat_settings", defaultEnabled, AuthApp, NewChannelChatSettingsCollector)
 }
 
 func NewChannelChatSettingsCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

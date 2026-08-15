@@ -19,7 +19,7 @@ type channelInfoCollector struct {
 }
 
 func init() {
-	registerCollector("channel_info", defaultEnabled, NewChannelInfoCollector)
+	registerCollector("channel_info", defaultEnabled, AuthApp, NewChannelInfoCollector)
 }
 
 func NewChannelInfoCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

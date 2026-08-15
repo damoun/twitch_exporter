@@ -17,7 +17,7 @@ type channelUpCollector struct {
 }
 
 func init() {
-	registerCollector("channel_up", defaultEnabled, NewChannelUpCollector)
+	registerCollector("channel_up", defaultEnabled, AuthApp, NewChannelUpCollector)
 }
 
 func NewChannelUpCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

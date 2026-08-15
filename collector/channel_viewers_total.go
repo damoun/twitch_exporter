@@ -17,7 +17,7 @@ type channelViewersTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_viewers_total", defaultEnabled, NewChannelViewersTotalCollector)
+	registerCollector("channel_viewers_total", defaultEnabled, AuthApp, NewChannelViewersTotalCollector)
 }
 
 func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

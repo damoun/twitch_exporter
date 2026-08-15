@@ -19,7 +19,7 @@ type channelGoalsCollector struct {
 }
 
 func init() {
-	registerCollector("channel_goals", defaultDisabled, NewChannelGoalsCollector)
+	registerCollector("channel_goals", defaultDisabled, AuthUser, NewChannelGoalsCollector)
 }
 
 func NewChannelGoalsCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

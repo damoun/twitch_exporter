@@ -18,7 +18,7 @@ type channelFollowersTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_followers_total", defaultEnabled, NewChannelFollowersTotalCollector)
+	registerCollector("channel_followers_total", defaultEnabled, AuthApp, NewChannelFollowersTotalCollector)
 }
 
 func NewChannelFollowersTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

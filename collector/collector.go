@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sort"
 	"sync"
 	"time"
 
@@ -17,6 +18,20 @@ import (
 )
 
 const namespace = "twitch"
+
+// AuthMode describes the level of Twitch credentials a collector requires.
+type AuthMode int
+
+const (
+	// AuthApp collectors only need an app access token. They query
+	// non-privileged, public data and are safe to expose via the /probe
+	// endpoint.
+	AuthApp AuthMode = iota
+	// AuthUser collectors require a user access token (or EventSub) to reach
+	// privileged data such as subscribers, moderators or chat events. They
+	// cannot be used in probe mode.
+	AuthUser
+)
 
 var (
 	scrapeDurationDesc = prometheus.NewDesc(
@@ -43,10 +58,11 @@ var (
 	initiatedCollectorsMtx = sync.Mutex{}
 	initiatedCollectors    = make(map[string]Collector)
 	collectorState         = make(map[string]*bool)
+	collectorAuthModes     = make(map[string]AuthMode)
 	forcedCollectors       = map[string]bool{} // collectors which have been explicitly enabled or disabled
 )
 
-func registerCollector(collector string, isDefaultEnabled bool, factory func(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error)) {
+func registerCollector(collector string, isDefaultEnabled bool, authMode AuthMode, factory func(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error)) {
 	var helpDefaultState string
 	if isDefaultEnabled {
 		helpDefaultState = "enabled"
@@ -60,8 +76,23 @@ func registerCollector(collector string, isDefaultEnabled bool, factory func(log
 
 	flag := kingpin.Flag(flagName, flagHelp).Default(defaultValue).Action(collectorFlagAction(collector)).Bool()
 	collectorState[collector] = flag
+	collectorAuthModes[collector] = authMode
 
 	factories[collector] = factory
+}
+
+// ProbeableCollectors returns, sorted alphabetically, the names of the
+// collectors that only require an app access token and are therefore safe to
+// serve from the /probe endpoint.
+func ProbeableCollectors() []string {
+	names := make([]string, 0, len(collectorAuthModes))
+	for name, mode := range collectorAuthModes {
+		if mode == AuthApp {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
 }
 
 type Exporter struct {
@@ -123,6 +154,46 @@ func NewExporter(logger *slog.Logger, client *helix.Client, eventsubClient *even
 
 	for k := range collectors {
 		logger.Info("enabled collector", "collector", k)
+	}
+
+	return &Exporter{
+		Collectors: collectors,
+		logger:     logger,
+	}, nil
+}
+
+// NewProbeExporter builds a single-use Exporter for one /probe request. Unlike
+// NewExporter it ignores the --collector.* flag state and instantiates the
+// requested collectors fresh against the given channel names, so each probe can
+// target a different set of channels. Only app-token (AuthApp) collectors are
+// permitted; requesting a privileged collector or an unknown name is an error.
+func NewProbeExporter(logger *slog.Logger, client *helix.Client, channelNames ChannelNames, requested []string) (*Exporter, error) {
+	if len(requested) == 0 {
+		return nil, errors.New("no collectors requested")
+	}
+
+	collectors := make(map[string]Collector)
+	for _, name := range requested {
+		if _, done := collectors[name]; done {
+			continue
+		}
+
+		factory, ok := factories[name]
+		if !ok {
+			return nil, fmt.Errorf("unknown collector: %q", name)
+		}
+
+		if collectorAuthModes[name] != AuthApp {
+			return nil, fmt.Errorf("collector %q requires a user access token and cannot be used in probe mode", name)
+		}
+
+		// probe collectors never need an eventsub client (that path is
+		// user-token/webhook only), so it is always nil here.
+		collector, err := factory(logger, client, nil, channelNames)
+		if err != nil {
+			return nil, err
+		}
+		collectors[name] = collector
 	}
 
 	return &Exporter{

@@ -18,7 +18,7 @@ type channelBannedUsersTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_banned_users_total", defaultDisabled, NewChannelBannedUsersTotalCollector)
+	registerCollector("channel_banned_users_total", defaultDisabled, AuthUser, NewChannelBannedUsersTotalCollector)
 }
 
 func NewChannelBannedUsersTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

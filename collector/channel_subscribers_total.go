@@ -24,7 +24,7 @@ type channelSubscriberTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_subscribers_total", defaultDisabled, NewChannelSubscriberTotalCollector)
+	registerCollector("channel_subscribers_total", defaultDisabled, AuthUser, NewChannelSubscriberTotalCollector)
 }
 
 func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

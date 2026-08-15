@@ -18,7 +18,7 @@ type channelChattersCollector struct {
 }
 
 func init() {
-	registerCollector("channel_chatters_total", defaultDisabled, NewChannelChattersCollector)
+	registerCollector("channel_chatters_total", defaultDisabled, AuthUser, NewChannelChattersCollector)
 }
 
 func NewChannelChattersCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

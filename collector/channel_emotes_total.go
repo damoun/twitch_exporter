@@ -18,7 +18,7 @@ type channelEmotesTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_emotes_total", defaultEnabled, NewChannelEmotesTotalCollector)
+	registerCollector("channel_emotes_total", defaultEnabled, AuthApp, NewChannelEmotesTotalCollector)
 }
 
 func NewChannelEmotesTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

@@ -18,7 +18,7 @@ type channelVipsTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_vips_total", defaultDisabled, NewChannelVipsTotalCollector)
+	registerCollector("channel_vips_total", defaultDisabled, AuthUser, NewChannelVipsTotalCollector)
 }
 
 func NewChannelVipsTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

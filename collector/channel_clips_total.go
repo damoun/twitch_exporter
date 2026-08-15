@@ -18,7 +18,7 @@ type channelClipsTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_clips_total", defaultEnabled, NewChannelClipsTotalCollector)
+	registerCollector("channel_clips_total", defaultEnabled, AuthApp, NewChannelClipsTotalCollector)
 }
 
 func NewChannelClipsTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

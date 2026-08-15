@@ -20,7 +20,7 @@ type channelCharityCollector struct {
 }
 
 func init() {
-	registerCollector("channel_charity", defaultDisabled, NewChannelCharityCollector)
+	registerCollector("channel_charity", defaultDisabled, AuthUser, NewChannelCharityCollector)
 }
 
 func NewChannelCharityCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {

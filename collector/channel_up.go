@@ -41,26 +41,32 @@ func (c channelUpCollector) Update(ch chan<- prometheus.Metric) error {
 		return ErrNoData
 	}
 
-	streamsResp, err := c.client.GetStreams(&helix.StreamsParams{
-		UserLogins: c.channelNames,
-		First:      len(c.channelNames),
-	})
+	// GetStreams returns only channels that are currently live, batched into
+	// grouped requests of at most maxHelixIDsPerRequest logins.
+	liveGames := make(map[string]string)
+	for _, chunk := range chunkStrings(c.channelNames, maxHelixIDsPerRequest) {
+		streamsResp, err := c.client.GetStreams(&helix.StreamsParams{
+			UserLogins: chunk,
+			First:      len(chunk),
+		})
 
-	if err != nil {
-		c.logger.Error("could not get streams", "err", err)
-		return err
+		if err != nil {
+			c.logger.Error("could not get streams", "err", err)
+			return err
+		}
+
+		for _, s := range streamsResp.Data.Streams {
+			liveGames[s.UserName] = s.GameName
+		}
 	}
 
 	for _, n := range c.channelNames {
 		state := 0
 		game := ""
 
-		for _, s := range streamsResp.Data.Streams {
-			if s.UserName == n {
-				state = 1
-				game = s.GameName
-				break
-			}
+		if g, ok := liveGames[n]; ok {
+			state = 1
+			game = g
 		}
 
 		ch <- c.channelUp.mustNewConstMetric(float64(state), n, game)

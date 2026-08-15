@@ -50,6 +50,11 @@ curl 'http://localhost:9184/probe?channels=twitch,shroud&collector=channel_up'
 curl 'http://localhost:9184/probe?channels=twitch'
 ```
 
+Channel lookups are batched into grouped Helix requests (up to 100 channels per
+call) and the resolved login-to-user mapping is shared through a short-lived
+cache, so scraping many channels across several collectors collapses redundant
+`Get Users` calls into a single request.
+
 Example Prometheus scrape config using the relabel pattern:
 
 ```yaml

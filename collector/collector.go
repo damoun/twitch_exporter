@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/damoun/twitch_exporter/internal/eventsub"
 	"github.com/nicklaw5/helix/v2"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/sync/singleflight"
 )
 
 const namespace = "twitch"
@@ -281,10 +283,161 @@ func countPaginated(fetchPage func(cursor string) (count int, next string, err e
 	return total, nil
 }
 
-// todo: we can avoid this with a shared cache of username to userID that has a short TTL
-// getUsers resolves channel login names to Twitch user objects.
-// It returns an error if the API call fails or returns a non-200 status.
+// maxHelixIDsPerRequest is the maximum number of logins/IDs the Twitch Helix
+// API accepts in a single batched request (Get Users, Get Streams, Get Channel
+// Information, etc). Requests with more entries must be split into chunks.
+const maxHelixIDsPerRequest = 100
+
+// chunkStrings splits s into consecutive slices of at most size elements. The
+// returned slices share the backing array of s. An empty input yields nil.
+func chunkStrings(s []string, size int) [][]string {
+	if len(s) == 0 {
+		return nil
+	}
+	if size <= 0 || len(s) <= size {
+		return [][]string{s}
+	}
+	chunks := make([][]string, 0, (len(s)+size-1)/size)
+	for i := 0; i < len(s); i += size {
+		end := i + size
+		if end > len(s) {
+			end = len(s)
+		}
+		chunks = append(chunks, s[i:end])
+	}
+	return chunks
+}
+
+type userCacheEntry struct {
+	user      helix.User
+	expiresAt time.Time
+}
+
+var (
+	// userCacheTTL bounds how long a resolved login -> user mapping is reused.
+	// Twitch user IDs are stable and display names change rarely, so a short
+	// TTL lets every collector in a scrape (and successive scrapes) share a
+	// single Get Users call without serving meaningfully stale data.
+	userCacheTTL = 5 * time.Minute
+
+	userCacheMu    sync.RWMutex
+	userCacheStore = make(map[string]userCacheEntry)
+
+	// userResolveSF coalesces concurrent resolutions of the same set of logins
+	// into a single API call. Collectors run concurrently within a scrape and
+	// typically request the same channels, so without this the cold-cache case
+	// would fan out into one Get Users call per collector.
+	userResolveSF singleflight.Group
+)
+
+func cachedUser(login string) (helix.User, bool) {
+	userCacheMu.RLock()
+	defer userCacheMu.RUnlock()
+	e, ok := userCacheStore[strings.ToLower(login)]
+	if !ok || time.Now().After(e.expiresAt) {
+		return helix.User{}, false
+	}
+	return e.user, true
+}
+
+func storeUsers(users []helix.User) {
+	userCacheMu.Lock()
+	defer userCacheMu.Unlock()
+	expiresAt := time.Now().Add(userCacheTTL)
+	for _, u := range users {
+		userCacheStore[strings.ToLower(u.Login)] = userCacheEntry{user: u, expiresAt: expiresAt}
+	}
+}
+
+// getUsers resolves channel login names to Twitch user objects, batching the
+// lookups into grouped Get Users requests and sharing results through a
+// short-lived cache so repeated resolutions across collectors and scrapes
+// collapse to a single API call. Results preserve the order of logins;
+// logins that do not resolve to a user are omitted. Passing no logins returns
+// the authenticated user and bypasses the cache.
 func getUsers(client *helix.Client, logger *slog.Logger, logins []string) ([]helix.User, error) {
+	if len(logins) == 0 {
+		return getUsersAPI(client, logger, nil)
+	}
+
+	resolved := make(map[string]helix.User, len(logins))
+	missSet := make(map[string]bool, len(logins))
+	var misses []string
+	for _, login := range logins {
+		key := strings.ToLower(login)
+		if _, ok := resolved[key]; ok {
+			continue
+		}
+		if u, ok := cachedUser(login); ok {
+			resolved[key] = u
+		} else if !missSet[key] {
+			missSet[key] = true
+			misses = append(misses, login)
+		}
+	}
+
+	if len(misses) > 0 {
+		fetched, err := resolveMissingUsers(client, logger, misses)
+		if err != nil {
+			return nil, err
+		}
+		for _, u := range fetched {
+			resolved[strings.ToLower(u.Login)] = u
+		}
+	}
+
+	result := make([]helix.User, 0, len(resolved))
+	added := make(map[string]bool, len(resolved))
+	for _, login := range logins {
+		key := strings.ToLower(login)
+		if added[key] {
+			continue
+		}
+		if u, ok := resolved[key]; ok {
+			result = append(result, u)
+			added[key] = true
+		}
+	}
+	return result, nil
+}
+
+// resolveMissingUsers fetches the users for the given logins, coalescing
+// concurrent identical resolutions and caching the results.
+func resolveMissingUsers(client *helix.Client, logger *slog.Logger, misses []string) ([]helix.User, error) {
+	key := singleflightKey(misses)
+	v, err, _ := userResolveSF.Do(key, func() (interface{}, error) {
+		var users []helix.User
+		for _, chunk := range chunkStrings(misses, maxHelixIDsPerRequest) {
+			fetched, err := getUsersAPI(client, logger, chunk)
+			if err != nil {
+				return nil, err
+			}
+			users = append(users, fetched...)
+		}
+		storeUsers(users)
+		return users, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]helix.User), nil
+}
+
+// singleflightKey builds an order-independent key for a set of logins so that
+// concurrent callers requesting the same channels share one in-flight fetch.
+func singleflightKey(logins []string) string {
+	keys := make([]string, len(logins))
+	for i, l := range logins {
+		keys[i] = strings.ToLower(l)
+	}
+	sort.Strings(keys)
+	return strings.Join(keys, ",")
+}
+
+// getUsersAPI performs a single Get Users call. Callers are responsible for
+// chunking logins to maxHelixIDsPerRequest. Passing nil logins returns the
+// authenticated user.
+func getUsersAPI(client *helix.Client, logger *slog.Logger, logins []string) ([]helix.User, error) {
 	resp, err := client.GetUsers(&helix.UsersParams{
 		Logins: logins,
 	})

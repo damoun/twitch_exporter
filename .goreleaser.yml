@@ -28,7 +28,7 @@ builds:
 
 dockers_v2:
   - images:
-      - ghcr.io/{{ envOrDefault .Env.GITHUB_REPOSITORY_OWNER "damoun" }}/twitch-exporter
+      - ghcr.io/{{ envOrDefault "GITHUB_REPOSITORY_OWNER" "damoun" }}/twitch-exporter
     tags:
       - "{{ .Version }}"
       - latest

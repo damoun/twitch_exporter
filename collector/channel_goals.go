@@ -19,7 +19,7 @@ type channelGoalsCollector struct {
 }
 
 func init() {
-	registerCollector("channel_goals", defaultDisabled, NewChannelGoalsCollector)
+	registerCollector("channel_goals", defaultDisabled, AuthUser, NewChannelGoalsCollector)
 }
 
 func NewChannelGoalsCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
@@ -70,8 +70,8 @@ func (c channelGoalsCollector) Update(ch chan<- prometheus.Metric) error {
 		}
 
 		for _, goal := range goalsResp.Data.Goals {
-			ch <- c.goalCurrent.mustNewConstMetric(float64(goal.CurrentAmount), user.DisplayName, goal.Type)
-			ch <- c.goalTarget.mustNewConstMetric(float64(goal.TargetAmount), user.DisplayName, goal.Type)
+			ch <- c.goalCurrent.mustNewConstMetric(float64(goal.CurrentAmount), user.Login, goal.Type)
+			ch <- c.goalTarget.mustNewConstMetric(float64(goal.TargetAmount), user.Login, goal.Type)
 		}
 	}
 

@@ -18,7 +18,7 @@ type channelBitsLeaderboardCollector struct {
 }
 
 func init() {
-	registerCollector("channel_bits_leaderboard", defaultDisabled, NewChannelBitsLeaderboardCollector)
+	registerCollector("channel_bits_leaderboard", defaultDisabled, AuthUser, NewChannelBitsLeaderboardCollector)
 }
 
 func NewChannelBitsLeaderboardCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, _ ChannelNames) (Collector, error) {
@@ -47,7 +47,7 @@ func (c channelBitsLeaderboardCollector) Update(ch chan<- prometheus.Metric) err
 		return ErrNoData
 	}
 
-	username := authUsers[0].DisplayName
+	username := authUsers[0].Login
 
 	// GetBitsLeaderboard returns the leaderboard for the authenticated broadcaster
 	bitsResp, err := c.client.GetBitsLeaderboard(&helix.BitsLeaderboardParams{
@@ -67,7 +67,7 @@ func (c channelBitsLeaderboardCollector) Update(ch chan<- prometheus.Metric) err
 		ch <- c.channelBitsLeaderboard.mustNewConstMetric(
 			float64(entry.Score),
 			username,
-			entry.UserName,
+			entry.UserLogin,
 			entry.UserID,
 			strconv.Itoa(entry.Rank),
 		)

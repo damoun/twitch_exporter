@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -30,6 +31,9 @@ var (
 	metricsPath = kingpin.Flag("web.telemetry-path",
 		"Path under which to expose metrics.").
 		Default("/metrics").String()
+	probePath = kingpin.Flag("web.probe-path",
+		"Path under which to expose the multi-target probe endpoint.").
+		Default("/probe").String()
 
 	// twitch app access token config
 	twitchClientID = kingpin.Flag("twitch.client-id",
@@ -144,24 +148,23 @@ func main() {
 		}
 	}
 
+	// appClient is an app-access-token client used by features that only need
+	// non-privileged access: the eventsub webhook setup and the /probe
+	// endpoint. When the primary client is already app-based we reuse it,
+	// otherwise (user-token mode) we create a dedicated app client.
+	appClient := client
+	if clientType == "user" {
+		appClient, err = newClientWithSecret(logger)
+		if err != nil {
+			logger.Error("Error creating the app client", "err", err)
+			os.Exit(1)
+		}
+	}
+
 	var eventsubClient *eventsub.Client
 
 	if *eventSubEnabled {
 		logger.Info("eventsub endpoint enabled", "endpoint", "/eventsub")
-
-		var appClient *helix.Client
-
-		// eventsub requires an app client to create webhooks, but we may have created a user client
-		// beforehand for subscription metrics, so just check and create the app client if needed
-		if clientType == "user" {
-			appClient, err = newClientWithSecret(logger)
-			if err != nil {
-				logger.Error("Error creating the client", "err", err)
-				os.Exit(1)
-			}
-		} else {
-			appClient = client
-		}
 
 		if *eventSubWebhookURL == "" || *eventSubWebhookSecret == "" {
 			logger.Error("Error creating the eventsub client", "err", "webhook URL and secret are required")
@@ -200,11 +203,19 @@ func main() {
 		ErrorHandling: promhttp.ContinueOnError,
 	}))
 
+	// /probe is a multi-target endpoint (blackbox_exporter style): the channels
+	// and collectors are supplied per request as URL parameters instead of via
+	// flags. It only serves non-privileged, app-token collectors, so it always
+	// uses the app-access-token client.
+	http.HandleFunc(*probePath, probeHandler(logger, appClient))
+	logger.Info("probe endpoint enabled", "endpoint", *probePath, "collectors", collector.ProbeableCollectors())
+
 	landingTmpl := template.Must(template.New("landing").Parse(`<html>
              <head><title>Twitch Exporter</title></head>
              <body>
              <h1>Twitch Exporter</h1>
              <p><a href='{{.MetricsPath}}'>Metrics</a></p>
+             <p><a href='{{.ProbePath}}?channels=twitch'>Probe</a> (multi-target, e.g. <code>{{.ProbePath}}?channels=twitch,shroud&collector=channel_up</code>)</p>
              <h2>Build</h2>
              <pre>{{.VersionInfo}} {{.BuildContext}}</pre>
              </body>
@@ -213,6 +224,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		err := landingTmpl.Execute(w, map[string]string{
 			"MetricsPath":  *metricsPath,
+			"ProbePath":    *probePath,
 			"VersionInfo":  version.Info(),
 			"BuildContext": version.BuildContext(),
 		})
@@ -225,6 +237,87 @@ func main() {
 	if err := web.ListenAndServe(srv, webConfig, logger); err != nil {
 		logger.Error("Error starting HTTP server", "err", err)
 		os.Exit(1)
+	}
+}
+
+// parseListParams collects the values of the given query parameter keys,
+// splitting on commas so both repeated (?k=a&k=b) and comma-separated (?k=a,b)
+// forms are supported. Empty and whitespace-only entries are dropped.
+func parseListParams(query url.Values, keys ...string) []string {
+	var out []string
+	for _, key := range keys {
+		for _, raw := range query[key] {
+			for _, part := range strings.Split(raw, ",") {
+				if part = strings.TrimSpace(part); part != "" {
+					out = append(out, part)
+				}
+			}
+		}
+	}
+	return out
+}
+
+// filterOut returns the elements of list not present in remove, preserving
+// order and de-duplicating removals.
+func filterOut(list, remove []string) []string {
+	if len(remove) == 0 {
+		return list
+	}
+	excluded := make(map[string]bool, len(remove))
+	for _, r := range remove {
+		excluded[r] = true
+	}
+	out := make([]string, 0, len(list))
+	for _, item := range list {
+		if !excluded[item] {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+// probeHandler serves the multi-target /probe endpoint. Each request specifies
+// the channels to scrape via the "channels" parameter and, optionally, the
+// collectors to run via the "collector"/"collectors" parameter. When no
+// collector is requested, every app-token collector is used. Collectors named
+// in the "exclude"/"exclude_collector" parameter are then removed, which is
+// handy for dropping high-cardinality collectors (e.g. channel_info) without
+// having to enumerate every other collector. Only non-privileged (app-token)
+// collectors are permitted.
+func probeHandler(logger *slog.Logger, client *helix.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+
+		channels := collector.ChannelNames(parseListParams(query, "channels", "channel"))
+		if len(channels) == 0 {
+			http.Error(w, "missing required parameter: channels", http.StatusBadRequest)
+			return
+		}
+
+		requested := parseListParams(query, "collector", "collectors")
+		if len(requested) == 0 {
+			requested = collector.ProbeableCollectors()
+		}
+
+		requested = filterOut(requested, parseListParams(query, "exclude", "exclude_collector"))
+		if len(requested) == 0 {
+			http.Error(w, "no collectors selected: all requested collectors were excluded", http.StatusBadRequest)
+			return
+		}
+
+		exporter, err := collector.NewProbeExporter(logger, client, channels, requested)
+		if err != nil {
+			logger.Error("probe request rejected", "err", err, "channels", []string(channels), "collectors", requested)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		registry := prometheus.NewRegistry()
+		registry.MustRegister(exporter)
+		promhttp.HandlerFor(registry, promhttp.HandlerOpts{
+			ErrorLog:      promHTTPLogger{logger: logger},
+			ErrorHandling: promhttp.ContinueOnError,
+		}).ServeHTTP(w, r)
 	}
 }
 

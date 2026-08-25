@@ -20,7 +20,7 @@ type channelCharityCollector struct {
 }
 
 func init() {
-	registerCollector("channel_charity", defaultDisabled, NewChannelCharityCollector)
+	registerCollector("channel_charity", defaultDisabled, AuthUser, NewChannelCharityCollector)
 }
 
 func NewChannelCharityCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
@@ -71,16 +71,16 @@ func (c channelCharityCollector) Update(ch chan<- prometheus.Metric) error {
 		}
 
 		if len(charityResp.Data.Campaigns) == 0 {
-			ch <- c.charityCurrentAmount.mustNewConstMetric(0, user.DisplayName, "")
-			ch <- c.charityTargetAmount.mustNewConstMetric(0, user.DisplayName, "")
+			ch <- c.charityCurrentAmount.mustNewConstMetric(0, user.Login, "")
+			ch <- c.charityTargetAmount.mustNewConstMetric(0, user.Login, "")
 			continue
 		}
 
 		campaign := charityResp.Data.Campaigns[0]
 		currentValue := float64(campaign.CurrentAmount.Value) / math.Pow(10, float64(campaign.CurrentAmount.DecimalPlaces))
 		targetValue := float64(campaign.TargetAmount.Value) / math.Pow(10, float64(campaign.TargetAmount.DecimalPlaces))
-		ch <- c.charityCurrentAmount.mustNewConstMetric(currentValue, user.DisplayName, campaign.CurrentAmount.Currency)
-		ch <- c.charityTargetAmount.mustNewConstMetric(targetValue, user.DisplayName, campaign.TargetAmount.Currency)
+		ch <- c.charityCurrentAmount.mustNewConstMetric(currentValue, user.Login, campaign.CurrentAmount.Currency)
+		ch <- c.charityTargetAmount.mustNewConstMetric(targetValue, user.Login, campaign.TargetAmount.Currency)
 	}
 
 	return nil

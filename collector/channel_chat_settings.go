@@ -22,7 +22,7 @@ type channelChatSettingsCollector struct {
 }
 
 func init() {
-	registerCollector("channel_chat_settings", defaultEnabled, NewChannelChatSettingsCollector)
+	registerCollector("channel_chat_settings", defaultEnabled, AuthApp, NewChannelChatSettingsCollector)
 }
 
 func NewChannelChatSettingsCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
@@ -102,11 +102,11 @@ func (c channelChatSettingsCollector) Update(ch chan<- prometheus.Metric) error 
 		}
 
 		s := settingsResp.Data.Settings[0]
-		ch <- c.chatEmoteOnly.mustNewConstMetric(boolToFloat64(s.EmoteMode), user.DisplayName)
-		ch <- c.chatFollowersOnly.mustNewConstMetric(boolToFloat64(s.FollowerMode), user.DisplayName)
-		ch <- c.chatSubscriberOnly.mustNewConstMetric(boolToFloat64(s.SubscriberMode), user.DisplayName)
-		ch <- c.chatSlowMode.mustNewConstMetric(boolToFloat64(s.SlowMode), user.DisplayName)
-		ch <- c.chatSlowModeWaitSeconds.mustNewConstMetric(float64(s.SlowModeWaitTime), user.DisplayName)
+		ch <- c.chatEmoteOnly.mustNewConstMetric(boolToFloat64(s.EmoteMode), user.Login)
+		ch <- c.chatFollowersOnly.mustNewConstMetric(boolToFloat64(s.FollowerMode), user.Login)
+		ch <- c.chatSubscriberOnly.mustNewConstMetric(boolToFloat64(s.SubscriberMode), user.Login)
+		ch <- c.chatSlowMode.mustNewConstMetric(boolToFloat64(s.SlowMode), user.Login)
+		ch <- c.chatSlowModeWaitSeconds.mustNewConstMetric(float64(s.SlowModeWaitTime), user.Login)
 	}
 
 	return nil

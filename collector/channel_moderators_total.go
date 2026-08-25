@@ -18,7 +18,7 @@ type channelModeratorsTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_moderators_total", defaultDisabled, NewChannelModeratorsTotalCollector)
+	registerCollector("channel_moderators_total", defaultDisabled, AuthUser, NewChannelModeratorsTotalCollector)
 }
 
 func NewChannelModeratorsTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
@@ -68,7 +68,7 @@ func (c channelModeratorsTotalCollector) Update(ch chan<- prometheus.Metric) err
 			return err
 		}
 
-		ch <- c.channelModeratorsTotal.mustNewConstMetric(float64(total), user.DisplayName)
+		ch <- c.channelModeratorsTotal.mustNewConstMetric(float64(total), user.Login)
 	}
 
 	return nil

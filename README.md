@@ -6,6 +6,10 @@ Export [Twitch](https://dev.twitch.tv/docs/api/reference) metrics to [Prometheus
 
 Each collector can be toggled with `--[no-]collector.<name>` flags.
 
+The `username` label is populated with the Twitch **login** (the stable,
+lower-cased account name) rather than the display name, so a streamer changing
+the capitalisation of their display name does not spawn a new time series.
+
 | Collector | Default | Auth | Metrics |
 |---|---|---|---|
 | `channel_up` | enabled | app | `twitch_channel_up` (username, game) |
@@ -25,6 +29,64 @@ Each collector can be toggled with `--[no-]collector.<name>` flags.
 | `channel_moderators_total` | disabled | user | `twitch_channel_moderators_total` (username) |
 | `channel_chat_messages_total` | disabled | user + EventSub | `twitch_channel_chat_messages_total` (username, chatter_username) |
 
+## Probe endpoint
+
+In addition to the flag-configured `/metrics` endpoint, the exporter exposes a
+multi-target `/probe` endpoint in the style of the
+[blackbox_exporter](https://github.com/prometheus/blackbox_exporter). This lets a
+single exporter scrape different channels per request, with the target supplied
+as a URL parameter rather than a flag. Because targets are chosen at request
+time, `/probe` only serves the non-privileged, app-token collectors.
+
+Parameters:
+
+* __`channels`:__ (required) the channel(s) to scrape. Repeatable
+  (`?channels=a&channels=b`) or comma-separated (`?channels=a,b`).
+* __`collector`:__ (optional) the collector(s) to run. Repeatable or
+  comma-separated. When omitted, every app-token collector runs. Requesting a
+  user-token collector (or an unknown name) returns `400 Bad Request`.
+* __`exclude`:__ (optional) collector(s) to drop from the selected set.
+  Repeatable or comma-separated. Applied after `collector` (or the default
+  set), so you can run "everything except X" without listing every collector -
+  useful for excluding high-cardinality collectors such as `channel_info`.
+
+```bash
+# scrape two channels with a specific collector
+curl 'http://localhost:9184/probe?channels=twitch,shroud&collector=channel_up'
+
+# scrape one channel with all app-token collectors
+curl 'http://localhost:9184/probe?channels=twitch'
+
+# all app-token collectors except the high-cardinality channel_info
+curl 'http://localhost:9184/probe?channels=twitch&exclude=channel_info'
+```
+
+Channel lookups are batched into grouped Helix requests (up to 100 channels per
+call) and the resolved login-to-user mapping is shared through a short-lived
+cache, so scraping many channels across several collectors collapses redundant
+`Get Users` calls into a single request.
+
+Example Prometheus scrape config using the relabel pattern:
+
+```yaml
+scrape_configs:
+  - job_name: twitch
+    metrics_path: /probe
+    params:
+      collector: [channel_up, channel_viewers_total]
+    static_configs:
+      - targets:
+          - twitch
+          - shroud
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_channels
+      - source_labels: [__param_channels]
+        target_label: channel
+      - target_label: __address__
+        replacement: localhost:9184
+```
+
 ## Flags
 
 ```bash
@@ -43,6 +105,7 @@ Each collector can be toggled with `--[no-]collector.<name>` flags.
 * __`version`:__ Show application version.
 * __`web.listen-address`:__ Addresses on which to expose metrics and web interface. Repeatable for multiple addresses.
 * __`web.telemetry-path`:__ Path under which to expose metrics.
+* __`web.probe-path`:__ Path under which to expose the multi-target probe endpoint (default: `/probe`).
 * __`web.config.file`:__ Path to configuration file that can enable TLS or authentication.
 * __`eventsub.enabled`:__ Enable eventsub endpoint (default: false).
 * __`eventsub.webhook-url`:__ The url your collector will be expected to be hosted at, eg: http://example.svc/eventsub (Must end with `/eventsub`).

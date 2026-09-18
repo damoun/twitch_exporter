@@ -17,7 +17,7 @@ type channelViewersTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_viewers_total", defaultEnabled, NewChannelViewersTotalCollector)
+	registerCollector("channel_viewers_total", defaultEnabled, AuthApp, NewChannelViewersTotalCollector)
 }
 
 func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
@@ -41,18 +41,22 @@ func (c channelViewersTotalCollector) Update(ch chan<- prometheus.Metric) error 
 		return ErrNoData
 	}
 
-	streamsResp, err := c.client.GetStreams(&helix.StreamsParams{
-		UserLogins: c.channelNames,
-		First:      len(c.channelNames),
-	})
+	// GetStreams returns only channels that are currently live, batched into
+	// grouped requests of at most maxHelixIDsPerRequest logins.
+	for _, chunk := range chunkStrings(c.channelNames, maxHelixIDsPerRequest) {
+		streamsResp, err := c.client.GetStreams(&helix.StreamsParams{
+			UserLogins: chunk,
+			First:      len(chunk),
+		})
 
-	if err != nil {
-		c.logger.Error("could not get streams", "err", err)
-		return err
-	}
+		if err != nil {
+			c.logger.Error("could not get streams", "err", err)
+			return err
+		}
 
-	for _, s := range streamsResp.Data.Streams {
-		ch <- c.channelViewersTotal.mustNewConstMetric(float64(s.ViewerCount), s.UserName, s.GameName)
+		for _, s := range streamsResp.Data.Streams {
+			ch <- c.channelViewersTotal.mustNewConstMetric(float64(s.ViewerCount), s.UserLogin, s.GameName)
+		}
 	}
 
 	return nil

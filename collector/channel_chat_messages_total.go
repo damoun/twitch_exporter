@@ -66,7 +66,7 @@ type channelChatMessagesCollector struct {
 func init() {
 	// disabled by default since you need to use webhooks to listen for events using an app access token
 	// which requires it to be exposed to the internet
-	registerCollector("channel_chat_messages_total", defaultDisabled, NewChannelChatMessagesCollector)
+	registerCollector("channel_chat_messages_total", defaultDisabled, AuthUser, NewChannelChatMessagesCollector)
 }
 
 func NewChannelChatMessagesCollector(logger *slog.Logger, client *helix.Client, eventsubClient *eventsub.Client, channelNames ChannelNames) (Collector, error) {

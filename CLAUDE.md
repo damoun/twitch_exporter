@@ -31,8 +31,13 @@ The project follows the Prometheus collector pattern from `prometheus/node_expor
 
 1. Create `collector/channel_<metric>.go`
 2. Implement the `Collector` interface (just `Update(ch chan<- prometheus.Metric) error`)
-3. Call `registerCollector("name", defaultEnabled, NewYourCollector)` in `init()`
+3. Call `registerCollector("name", defaultEnabled, authMode, NewYourCollector)` in `init()`
 4. Factory signature: `func(logger, client, eventsubClient, channelNames) (Collector, error)`
+5. `authMode` is `collector.AuthApp` (works with just an app access token) or `collector.AuthUser` (needs a user token or EventSub). Only `AuthApp` collectors are served by the `/probe` endpoint.
+
+### Probe endpoint
+
+`/probe` is a multi-target (blackbox_exporter-style) endpoint. Channels and collectors are passed per request as URL params (`?channels=a,b&collector=channel_up`) instead of flags, and it only serves `AuthApp` collectors. See `probeHandler` in `twitch_exporter.go` and `collector.NewProbeExporter` / `collector.ProbeableCollectors`.
 
 ### Auth Modes
 

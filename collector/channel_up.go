@@ -2,6 +2,7 @@ package collector
 
 import (
 	"log/slog"
+	"strings"
 
 	"github.com/damoun/twitch_exporter/internal/eventsub"
 	"github.com/nicklaw5/helix/v2"
@@ -17,7 +18,7 @@ type channelUpCollector struct {
 }
 
 func init() {
-	registerCollector("channel_up", defaultEnabled, NewChannelUpCollector)
+	registerCollector("channel_up", defaultEnabled, AuthApp, NewChannelUpCollector)
 }
 
 func NewChannelUpCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
@@ -41,29 +42,39 @@ func (c channelUpCollector) Update(ch chan<- prometheus.Metric) error {
 		return ErrNoData
 	}
 
-	streamsResp, err := c.client.GetStreams(&helix.StreamsParams{
-		UserLogins: c.channelNames,
-		First:      len(c.channelNames),
-	})
+	// GetStreams returns only channels that are currently live, batched into
+	// grouped requests of at most maxHelixIDsPerRequest logins.
+	liveGames := make(map[string]string)
+	for _, chunk := range chunkStrings(c.channelNames, maxHelixIDsPerRequest) {
+		streamsResp, err := c.client.GetStreams(&helix.StreamsParams{
+			UserLogins: chunk,
+			First:      len(chunk),
+		})
 
-	if err != nil {
-		c.logger.Error("could not get streams", "err", err)
-		return err
+		if err != nil {
+			c.logger.Error("could not get streams", "err", err)
+			return err
+		}
+
+		for _, s := range streamsResp.Data.Streams {
+			liveGames[strings.ToLower(s.UserLogin)] = s.GameName
+		}
 	}
 
 	for _, n := range c.channelNames {
+		// Label with the login (lower-cased): stable across display-name case
+		// changes and matches the canonical login the API returns.
+		login := strings.ToLower(n)
+
 		state := 0
 		game := ""
 
-		for _, s := range streamsResp.Data.Streams {
-			if s.UserName == n {
-				state = 1
-				game = s.GameName
-				break
-			}
+		if g, ok := liveGames[login]; ok {
+			state = 1
+			game = g
 		}
 
-		ch <- c.channelUp.mustNewConstMetric(float64(state), n, game)
+		ch <- c.channelUp.mustNewConstMetric(float64(state), login, game)
 	}
 
 	return nil

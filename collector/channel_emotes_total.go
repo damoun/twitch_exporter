@@ -18,7 +18,7 @@ type channelEmotesTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_emotes_total", defaultEnabled, NewChannelEmotesTotalCollector)
+	registerCollector("channel_emotes_total", defaultEnabled, AuthApp, NewChannelEmotesTotalCollector)
 }
 
 func NewChannelEmotesTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
@@ -62,7 +62,7 @@ func (c channelEmotesTotalCollector) Update(ch chan<- prometheus.Metric) error {
 			return errors.New(emotesResp.ErrorMessage)
 		}
 
-		ch <- c.channelEmotesTotal.mustNewConstMetric(float64(len(emotesResp.Data.Emotes)), user.DisplayName)
+		ch <- c.channelEmotesTotal.mustNewConstMetric(float64(len(emotesResp.Data.Emotes)), user.Login)
 	}
 
 	return nil

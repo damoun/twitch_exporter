@@ -18,7 +18,7 @@ type channelBannedUsersTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_banned_users_total", defaultDisabled, NewChannelBannedUsersTotalCollector)
+	registerCollector("channel_banned_users_total", defaultDisabled, AuthUser, NewChannelBannedUsersTotalCollector)
 }
 
 func NewChannelBannedUsersTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
@@ -67,7 +67,7 @@ func (c channelBannedUsersTotalCollector) Update(ch chan<- prometheus.Metric) er
 			return err
 		}
 
-		ch <- c.channelBannedUsersTotal.mustNewConstMetric(float64(total), user.DisplayName)
+		ch <- c.channelBannedUsersTotal.mustNewConstMetric(float64(total), user.Login)
 	}
 
 	return nil

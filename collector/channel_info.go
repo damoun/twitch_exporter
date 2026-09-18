@@ -19,7 +19,7 @@ type channelInfoCollector struct {
 }
 
 func init() {
-	registerCollector("channel_info", defaultEnabled, NewChannelInfoCollector)
+	registerCollector("channel_info", defaultEnabled, AuthApp, NewChannelInfoCollector)
 }
 
 func NewChannelInfoCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
@@ -58,27 +58,31 @@ func (c channelInfoCollector) Update(ch chan<- prometheus.Metric) error {
 	usersByID := make(map[string]string, len(users))
 	for _, user := range users {
 		broadcasterIDs = append(broadcasterIDs, user.ID)
-		usersByID[user.ID] = user.DisplayName
+		usersByID[user.ID] = user.Login
 	}
 
-	channelResp, err := c.client.GetChannelInformation(&helix.GetChannelInformationParams{
-		BroadcasterIDs: broadcasterIDs,
-	})
+	// GetChannelInformation is batched into grouped requests of at most
+	// maxHelixIDsPerRequest broadcaster IDs.
+	for _, chunk := range chunkStrings(broadcasterIDs, maxHelixIDsPerRequest) {
+		channelResp, err := c.client.GetChannelInformation(&helix.GetChannelInformationParams{
+			BroadcasterIDs: chunk,
+		})
 
-	if err != nil {
-		c.logger.Error("Failed to collect channel information from Twitch helix API", "err", err)
-		return err
-	}
+		if err != nil {
+			c.logger.Error("Failed to collect channel information from Twitch helix API", "err", err)
+			return err
+		}
 
-	if channelResp.StatusCode != 200 {
-		c.logger.Error("Failed to collect channel information from Twitch helix API", "err", channelResp.ErrorMessage)
-		return errors.New(channelResp.ErrorMessage)
-	}
+		if channelResp.StatusCode != 200 {
+			c.logger.Error("Failed to collect channel information from Twitch helix API", "err", channelResp.ErrorMessage)
+			return errors.New(channelResp.ErrorMessage)
+		}
 
-	for _, channel := range channelResp.Data.Channels {
-		username := usersByID[channel.BroadcasterID]
-		ch <- c.channelInfo.mustNewConstMetric(1, username, channel.GameName, channel.Title, channel.BroadcasterLanguage)
-		ch <- c.channelDelaySeconds.mustNewConstMetric(float64(channel.Delay), username)
+		for _, channel := range channelResp.Data.Channels {
+			username := usersByID[channel.BroadcasterID]
+			ch <- c.channelInfo.mustNewConstMetric(1, username, channel.GameName, channel.Title, channel.BroadcasterLanguage)
+			ch <- c.channelDelaySeconds.mustNewConstMetric(float64(channel.Delay), username)
+		}
 	}
 
 	return nil

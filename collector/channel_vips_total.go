@@ -18,7 +18,7 @@ type channelVipsTotalCollector struct {
 }
 
 func init() {
-	registerCollector("channel_vips_total", defaultDisabled, NewChannelVipsTotalCollector)
+	registerCollector("channel_vips_total", defaultDisabled, AuthUser, NewChannelVipsTotalCollector)
 }
 
 func NewChannelVipsTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
@@ -68,7 +68,7 @@ func (c channelVipsTotalCollector) Update(ch chan<- prometheus.Metric) error {
 			return err
 		}
 
-		ch <- c.channelVipsTotal.mustNewConstMetric(float64(total), user.DisplayName)
+		ch <- c.channelVipsTotal.mustNewConstMetric(float64(total), user.Login)
 	}
 
 	return nil

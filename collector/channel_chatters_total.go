@@ -18,7 +18,7 @@ type channelChattersCollector struct {
 }
 
 func init() {
-	registerCollector("channel_chatters_total", defaultDisabled, NewChannelChattersCollector)
+	registerCollector("channel_chatters_total", defaultDisabled, AuthUser, NewChannelChattersCollector)
 }
 
 func NewChannelChattersCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
@@ -75,7 +75,7 @@ func (c channelChattersCollector) Update(ch chan<- prometheus.Metric) error {
 			return errors.New(chattersResp.ErrorMessage)
 		}
 
-		ch <- c.channelChattersTotal.mustNewConstMetric(float64(chattersResp.Data.Total), user.DisplayName)
+		ch <- c.channelChattersTotal.mustNewConstMetric(float64(chattersResp.Data.Total), user.Login)
 	}
 
 	return nil

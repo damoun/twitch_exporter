@@ -295,6 +295,8 @@ func probeHandler(logger *slog.Logger, client *helix.Client, stagger *time.Durat
 			// is to help with reducing rate limit hits.
 			randomDelay := time.Duration(rand.Int63n(int64(*stagger)))
 			time.Sleep(randomDelay)
+
+			slog.Info("request staggered", "delay", randomDelay)
 		}
 
 		query := r.URL.Query()

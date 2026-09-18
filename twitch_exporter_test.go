@@ -65,7 +65,7 @@ func TestFilterOut(t *testing.T) {
 
 func TestProbeHandlerBadRequests(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	handler := probeHandler(logger, nil)
+	handler := probeHandler(logger, nil, nil)
 
 	cases := []struct {
 		name  string

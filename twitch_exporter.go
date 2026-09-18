@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"log/slog"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -34,6 +35,9 @@ var (
 	probePath = kingpin.Flag("web.probe-path",
 		"Path under which to expose the multi-target probe endpoint.").
 		Default("/probe").String()
+	probeStagger = kingpin.Flag("web.probe-stagger",
+		"Stagger time between probe requests.").
+		Default("0s").Duration()
 
 	// twitch app access token config
 	twitchClientID = kingpin.Flag("twitch.client-id",
@@ -207,7 +211,7 @@ func main() {
 	// and collectors are supplied per request as URL parameters instead of via
 	// flags. It only serves non-privileged, app-token collectors, so it always
 	// uses the app-access-token client.
-	http.HandleFunc(*probePath, probeHandler(logger, appClient))
+	http.HandleFunc(*probePath, probeHandler(logger, appClient, probeStagger))
 	logger.Info("probe endpoint enabled", "endpoint", *probePath, "collectors", collector.ProbeableCollectors())
 
 	landingTmpl := template.Must(template.New("landing").Parse(`<html>
@@ -284,8 +288,15 @@ func filterOut(list, remove []string) []string {
 // handy for dropping high-cardinality collectors (e.g. channel_info) without
 // having to enumerate every other collector. Only non-privileged (app-token)
 // collectors are permitted.
-func probeHandler(logger *slog.Logger, client *helix.Client) http.HandlerFunc {
+func probeHandler(logger *slog.Logger, client *helix.Client, stagger *time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if stagger != nil {
+			// we want to stagger the requests by up to the stagger amount, this
+			// is to help with reducing rate limit hits.
+			randomDelay := time.Duration(rand.Int63n(int64(*stagger)))
+			time.Sleep(randomDelay)
+		}
+
 		query := r.URL.Query()
 
 		channels := collector.ChannelNames(parseListParams(query, "channels", "channel"))

@@ -1,0 +1,20 @@
+name: Helm
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "charts/**"
+      - ".github/workflows/helm.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "charts/**"
+      - ".github/workflows/helm.yml"
+
+jobs:
+  helm:
+    uses: damoun/.github/.github/workflows/helm.yml@100887a626177ba3f8514140fe3433f42b921e9f # main
+    permissions:
+      contents: read
+      security-events: write

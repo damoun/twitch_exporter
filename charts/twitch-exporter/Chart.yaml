@@ -3,5 +3,5 @@ name: twitch-exporter
 description: A Helm chart for twitch_exporter
 type: application
 
-version: 1.0.2
-appVersion: "1.1.0"
+version: 1.0.3
+appVersion: "1.1.5"

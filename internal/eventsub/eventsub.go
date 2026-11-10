@@ -91,7 +91,10 @@ func New(
 
 func (c *Client) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c.logger.Debug("received event", "body", r.Body, "headers", r.Header)
+		c.logger.Debug("received event",
+			"message_id", r.Header.Get("Twitch-Eventsub-Message-Id"),
+			"message_type", r.Header.Get("Twitch-Eventsub-Message-Type"),
+		)
 		c.cl.Handler(w, r)
 		c.logger.Debug("event handled", "headers", w.Header())
 	}

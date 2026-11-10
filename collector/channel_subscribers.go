@@ -14,12 +14,12 @@ const (
 	notGiftedSub = "false"
 )
 
-type channelSubscriberTotalCollector struct {
+type channelSubscribersCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
 
-	channelSubscribersTotal   typedDesc
+	channelSubscribers        typedDesc
 	channelSubscriptionPoints typedDesc
 }
 
@@ -28,12 +28,12 @@ func init() {
 }
 
 func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
-	c := channelSubscriberTotalCollector{
+	c := channelSubscribersCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
 
-		channelSubscribersTotal: typedDesc{prometheus.NewDesc(
+		channelSubscribers: typedDesc{prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "channel_subscribers"),
 			"The number of subscriber of a channel.",
 			[]string{"username", "tier", "gifted"}, nil,
@@ -48,7 +48,7 @@ func NewChannelSubscriberTotalCollector(logger *slog.Logger, client *helix.Clien
 	return c, nil
 }
 
-func (c channelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelSubscribersCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}
@@ -91,11 +91,11 @@ func (c channelSubscriberTotalCollector) Update(ch chan<- prometheus.Metric) err
 		}
 
 		for tier, counter := range giftedSubCounter {
-			ch <- c.channelSubscribersTotal.mustNewConstMetric(float64(counter), user.DisplayName, tier, giftedSub)
+			ch <- c.channelSubscribers.mustNewConstMetric(float64(counter), user.DisplayName, tier, giftedSub)
 		}
 
 		for tier, counter := range subCounter {
-			ch <- c.channelSubscribersTotal.mustNewConstMetric(float64(counter), user.DisplayName, tier, notGiftedSub)
+			ch <- c.channelSubscribers.mustNewConstMetric(float64(counter), user.DisplayName, tier, notGiftedSub)
 		}
 
 		ch <- c.channelSubscriptionPoints.mustNewConstMetric(float64(subscriptionsResp.Data.Points), user.DisplayName)

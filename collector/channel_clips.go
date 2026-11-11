@@ -9,7 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type channelClipsTotalCollector struct {
+type channelClipsCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
@@ -22,13 +22,13 @@ func init() {
 }
 
 func NewChannelClipsTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
-	c := channelClipsTotalCollector{
+	c := channelClipsCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
 
 		channelClips: typedDesc{prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "channel_clips_total"),
+			prometheus.BuildFQName(namespace, "", "channel_clips"),
 			"The number of clips of a channel.",
 			[]string{"username"}, nil,
 		), prometheus.GaugeValue},
@@ -37,7 +37,7 @@ func NewChannelClipsTotalCollector(logger *slog.Logger, client *helix.Client, _ 
 	return c, nil
 }
 
-func (c channelClipsTotalCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelClipsCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}
@@ -60,7 +60,7 @@ func (c channelClipsTotalCollector) Update(ch chan<- prometheus.Metric) error {
 	return nil
 }
 
-func (c channelClipsTotalCollector) countClips(broadcasterID string) (int, error) {
+func (c channelClipsCollector) countClips(broadcasterID string) (int, error) {
 	return countPaginated(func(cursor string) (int, string, error) {
 		resp, err := c.client.GetClips(&helix.ClipsParams{
 			BroadcasterID: broadcasterID,

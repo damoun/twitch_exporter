@@ -14,7 +14,7 @@ type channelChattersCollector struct {
 	client       *helix.Client
 	channelNames ChannelNames
 
-	channelChattersTotal typedDesc
+	channelChatters typedDesc
 }
 
 func init() {
@@ -27,8 +27,8 @@ func NewChannelChattersCollector(logger *slog.Logger, client *helix.Client, _ *e
 		client:       client,
 		channelNames: channelNames,
 
-		channelChattersTotal: typedDesc{prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "channel_chatters_total"),
+		channelChatters: typedDesc{prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "channel_chatters"),
 			"The number of users in a channel's chat.",
 			[]string{"username"}, nil,
 		), prometheus.GaugeValue},
@@ -75,7 +75,7 @@ func (c channelChattersCollector) Update(ch chan<- prometheus.Metric) error {
 			return errors.New(chattersResp.ErrorMessage)
 		}
 
-		ch <- c.channelChattersTotal.mustNewConstMetric(float64(chattersResp.Data.Total), user.DisplayName)
+		ch <- c.channelChatters.mustNewConstMetric(float64(chattersResp.Data.Total), user.DisplayName)
 	}
 
 	return nil

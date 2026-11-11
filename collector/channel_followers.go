@@ -9,7 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type channelFollowersTotalCollector struct {
+type channelFollowersCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
@@ -22,13 +22,13 @@ func init() {
 }
 
 func NewChannelFollowersTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
-	c := channelFollowersTotalCollector{
+	c := channelFollowersCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
 
 		channelFollowers: typedDesc{prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "channel_followers_total"),
+			prometheus.BuildFQName(namespace, "", "channel_followers"),
 			"The number of followers of a channel.",
 			[]string{"username"}, nil,
 		), prometheus.GaugeValue},
@@ -37,7 +37,7 @@ func NewChannelFollowersTotalCollector(logger *slog.Logger, client *helix.Client
 	return c, nil
 }
 
-func (c channelFollowersTotalCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelFollowersCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}

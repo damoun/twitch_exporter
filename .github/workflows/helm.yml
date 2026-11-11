@@ -14,7 +14,7 @@ on:
 
 jobs:
   helm:
-    uses: damoun/.github/.github/workflows/helm.yml@100887a626177ba3f8514140fe3433f42b921e9f # main
+    uses: damoun/.github/.github/workflows/helm.yml@f95c8f2f44951cf9126e66c062c7c0ca3de7762a # main
     permissions:
       contents: read
       security-events: write

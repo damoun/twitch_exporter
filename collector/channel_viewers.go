@@ -8,12 +8,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type channelViewersTotalCollector struct {
+type channelViewersCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
 
-	channelViewersTotal typedDesc
+	channelViewers typedDesc
 }
 
 func init() {
@@ -21,13 +21,13 @@ func init() {
 }
 
 func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
-	c := channelViewersTotalCollector{
+	c := channelViewersCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
 
-		channelViewersTotal: typedDesc{prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "channel_viewers_total"),
+		channelViewers: typedDesc{prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "channel_viewers"),
 			"How many viewers on this live channel. If stream is offline then this is absent.",
 			[]string{"username", "game"}, nil,
 		), prometheus.GaugeValue},
@@ -36,7 +36,7 @@ func NewChannelViewersTotalCollector(logger *slog.Logger, client *helix.Client, 
 	return c, nil
 }
 
-func (c channelViewersTotalCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelViewersCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}
@@ -52,7 +52,7 @@ func (c channelViewersTotalCollector) Update(ch chan<- prometheus.Metric) error 
 	}
 
 	for _, s := range streamsResp.Data.Streams {
-		ch <- c.channelViewersTotal.mustNewConstMetric(float64(s.ViewerCount), s.UserName, s.GameName)
+		ch <- c.channelViewers.mustNewConstMetric(float64(s.ViewerCount), s.UserName, s.GameName)
 	}
 
 	return nil

@@ -9,12 +9,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type channelBannedUsersTotalCollector struct {
+type channelBannedUsersCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
 
-	channelBannedUsersTotal typedDesc
+	channelBannedUsers typedDesc
 }
 
 func init() {
@@ -22,13 +22,13 @@ func init() {
 }
 
 func NewChannelBannedUsersTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
-	c := channelBannedUsersTotalCollector{
+	c := channelBannedUsersCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
 
-		channelBannedUsersTotal: typedDesc{prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "channel_banned_users_total"),
+		channelBannedUsers: typedDesc{prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "channel_banned_users"),
 			"The number of banned users of a channel.",
 			[]string{"username"}, nil,
 		), prometheus.GaugeValue},
@@ -37,7 +37,7 @@ func NewChannelBannedUsersTotalCollector(logger *slog.Logger, client *helix.Clie
 	return c, nil
 }
 
-func (c channelBannedUsersTotalCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelBannedUsersCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}
@@ -67,7 +67,7 @@ func (c channelBannedUsersTotalCollector) Update(ch chan<- prometheus.Metric) er
 			return err
 		}
 
-		ch <- c.channelBannedUsersTotal.mustNewConstMetric(float64(total), user.DisplayName)
+		ch <- c.channelBannedUsers.mustNewConstMetric(float64(total), user.DisplayName)
 	}
 
 	return nil

@@ -9,12 +9,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type channelEmotesTotalCollector struct {
+type channelEmotesCollector struct {
 	logger       *slog.Logger
 	client       *helix.Client
 	channelNames ChannelNames
 
-	channelEmotesTotal typedDesc
+	channelEmotes typedDesc
 }
 
 func init() {
@@ -22,13 +22,13 @@ func init() {
 }
 
 func NewChannelEmotesTotalCollector(logger *slog.Logger, client *helix.Client, _ *eventsub.Client, channelNames ChannelNames) (Collector, error) {
-	c := channelEmotesTotalCollector{
+	c := channelEmotesCollector{
 		logger:       logger,
 		client:       client,
 		channelNames: channelNames,
 
-		channelEmotesTotal: typedDesc{prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "channel_emotes_total"),
+		channelEmotes: typedDesc{prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "channel_emotes"),
 			"The number of custom emotes of a channel.",
 			[]string{"username"}, nil,
 		), prometheus.GaugeValue},
@@ -37,7 +37,7 @@ func NewChannelEmotesTotalCollector(logger *slog.Logger, client *helix.Client, _
 	return c, nil
 }
 
-func (c channelEmotesTotalCollector) Update(ch chan<- prometheus.Metric) error {
+func (c channelEmotesCollector) Update(ch chan<- prometheus.Metric) error {
 	if len(c.channelNames) == 0 {
 		return ErrNoData
 	}
@@ -62,7 +62,7 @@ func (c channelEmotesTotalCollector) Update(ch chan<- prometheus.Metric) error {
 			return errors.New(emotesResp.ErrorMessage)
 		}
 
-		ch <- c.channelEmotesTotal.mustNewConstMetric(float64(len(emotesResp.Data.Emotes)), user.DisplayName)
+		ch <- c.channelEmotes.mustNewConstMetric(float64(len(emotesResp.Data.Emotes)), user.DisplayName)
 	}
 
 	return nil

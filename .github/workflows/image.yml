@@ -11,7 +11,7 @@ on:
 
 jobs:
   image:
-    uses: damoun/.github/.github/workflows/image.yml@f95c8f2f44951cf9126e66c062c7c0ca3de7762a # main
+    uses: damoun/.github/.github/workflows/image.yml@9434c1a64d428e24729db1cf95a4463e00b1981e # main
     permissions:
       contents: read
       security-events: write

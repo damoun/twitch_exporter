@@ -54,12 +54,12 @@ Both modes auto-refresh tokens every 24 hours.
 | Collector | File | Default | Auth |
 |---|---|---|---|
 | `channel_up` | `channel_up.go` | enabled | app token |
-| `channel_viewers_total` | `channel_viewers_total.go` | enabled | app token |
-| `channel_followers_total` | `channel_followers_total.go` | enabled | app token |
-| `channel_subscribers_total` | `channel_subscribers_total.go` | disabled | user token |
+| `channel_viewers_total` | `channel_viewers.go` | enabled | app token |
+| `channel_followers_total` | `channel_followers.go` | enabled | app token |
+| `channel_subscribers_total` | `channel_subscribers.go` | disabled | user token |
 | `channel_chat_messages_total` | `channel_chat_messages_total.go` | disabled | user token + EventSub |
 | `channel_bits_leaderboard` | `channel_bits_leaderboard.go` | disabled | user token |
-| `channel_clips_total` | `channel_clips_total.go` | enabled | app token |
+| `channel_clips_total` | `channel_clips.go` | enabled | app token |
 
 ### Deployment
 
